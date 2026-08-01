@@ -1,4 +1,8 @@
-const DEFAULT_MODEL = 'gemini-2.5-flash'
+// Alias "rolante" em vez de uma versão travada: aponta sempre pro flash atual
+// (hoje resolve pro gemini-3.6-flash) e sobrevive o Google aposentando modelos
+// antigos sem quebrar o código - foi exatamente isso que aconteceu com o
+// gemini-2.5-flash, descontinuado pra novos usuários.
+const DEFAULT_MODEL = 'gemini-flash-latest'
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
 const NEVER_INVENT_RULE =
