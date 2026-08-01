@@ -4,6 +4,7 @@ import { normalizeProfile } from '../lib/profileSchema'
 import { fileToBase64 } from './resumeUpload'
 import styles from './optionsStyles'
 import ListEditor from './ListEditor'
+import DebugPanel from './DebugPanel'
 
 const EXPERIENCE_TEMPLATE = { company: '', title: '', startDate: '', endDate: '', current: false, description: '' }
 const EDUCATION_TEMPLATE = { institution: '', degree: '', field: '', startDate: '', endDate: '' }
@@ -27,6 +28,7 @@ function OptionsApp() {
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState('')
   const [extracting, setExtracting] = useState(false)
+  const [resumeError, setResumeError] = useState('')
   const [emptyResumeSections, setEmptyResumeSections] = useState([])
 
   useEffect(() => {
@@ -99,6 +101,7 @@ function OptionsApp() {
     if (!file) return
 
     setExtracting(true)
+    setResumeError('')
     setStatus('⏳ Enviando currículo pro Gemini…')
     try {
       const pdfBase64 = await fileToBase64(file)
@@ -126,7 +129,8 @@ function OptionsApp() {
       setEmptyResumeSections(empties)
       setStatus('Currículo extraído. Revise os campos abaixo e clique em "Salvar perfil" quando estiver pronto.')
     } catch (error) {
-      setStatus(`Erro ao extrair o currículo: ${error.message}`)
+      setStatus('')
+      setResumeError(error.message)
     } finally {
       setExtracting(false)
     }
@@ -156,7 +160,12 @@ function OptionsApp() {
   }
 
   if (loading) {
-    return <div style={styles.page}>Carregando…</div>
+    return (
+      <div style={styles.page}>
+        Carregando…
+        <DebugPanel />
+      </div>
+    )
   }
 
   const apiKeyTooShort = apiKey.trim().length < MIN_KEY_LENGTH
@@ -221,7 +230,8 @@ function OptionsApp() {
           <h2 style={styles.h2}>Currículo</h2>
           <p style={styles.hint}>Suba o PDF uma vez: os dados extraídos populam as seções abaixo, editáveis.</p>
           <input type="file" accept="application/pdf" onChange={onResumeSelected} disabled={extracting} />
-          {extracting ? <p style={styles.processing}>{status}</p> : null}
+          {status ? <p style={styles.processing}>{status}</p> : null}
+          {resumeError ? <p style={styles.warning}>⚠ Erro ao extrair o currículo: {resumeError}</p> : null}
           {emptyResumeSections.length > 0 ? (
             <p style={styles.warning}>
               Seções não encontradas no PDF: {emptyResumeSections.join(', ')}. Preencha manualmente se fizer sentido.
@@ -350,6 +360,8 @@ function OptionsApp() {
           </div>
         </>
       ) : null}
+
+      <DebugPanel />
     </div>
   )
 }
