@@ -1,0 +1,105 @@
+import { scanFields, getFieldElement } from '../lib/domScanner'
+import { fillField, addRepeatableEntries } from '../lib/fillEngine'
+import { findAddButtonsBySection } from '../lib/dynamicSections'
+import { findNextStepButton } from '../lib/wizardNav'
+import { sendMessage, MESSAGE_TYPES } from '../lib/messaging'
+
+const DESCRIPTION_SELECTOR = '[class*="description" i], [id*="description" i], main, article'
+
+function extractJobDescription() {
+  const text = document.querySelector(DESCRIPTION_SELECTOR)?.textContent?.trim()
+  return text && text.length > 40 ? text.slice(0, 4000) : null
+}
+
+/**
+ * Roda o ciclo de análise: escaneia campos visíveis não preenchidos, manda pro
+ * background mapear (que resolve fieldBindings/customQA localmente e o resto via
+ * LLM), e adapta valores que estourem o limite de caracteres do campo.
+ */
+async function analyzeFields(fields, { extraContext } = {}) {
+  if (fields.length === 0) return []
+
+  const jobDescription = extractJobDescription()
+  const mappings = await sendMessage(MESSAGE_TYPES.MAP_FIELDS, { fields, jobDescription, extraContext })
+  const byId = new Map(mappings.map((m) => [m.fieldId, m]))
+
+  return Promise.all(
+    fields.map(async (field) => {
+      const mapping = byId.get(field.fieldId) ?? {
+        value: null,
+        confidence: 0,
+        missingQuestion: 'Não foi possível mapear este campo automaticamente.',
+      }
+
+      let { value } = mapping
+      if (value && field.charLimit && value.length > field.charLimit.max) {
+        value = await sendMessage(MESSAGE_TYPES.ADAPT_TEXT, {
+          sourceText: value,
+          maxLength: field.charLimit.max,
+          jobDescription,
+        })
+      }
+
+      return { ...field, proposal: { ...mapping, value } }
+    }),
+  )
+}
+
+async function analyzeCurrentStep(root = document) {
+  const fields = scanFields(root)
+  const enriched = await analyzeFields(fields)
+  return { fields: enriched, addButtons: findAddButtonsBySection(root) }
+}
+
+/**
+ * Clica no botão "+" da seção `count` vezes, re-escaneia só os campos que surgiram
+ * e pede pro LLM mapear cada bloco novo com contexto de qual entrada do perfil ele
+ * corresponde (ver plano: seções dinâmicas).
+ */
+async function expandSection(buttonEl, count, profileArrayKey, root = document) {
+  const before = new Set(scanFields(root).map((f) => f.fieldId))
+  const newFieldsByEntry = []
+
+  for (let i = 0; i < count; i += 1) {
+    await addRepeatableEntries(buttonEl, 1, { scopeEl: document.body })
+    const afterFields = scanFields(root)
+    const newFields = afterFields.filter((f) => !before.has(f.fieldId))
+    newFields.forEach((f) => before.add(f.fieldId))
+
+    if (newFields.length === 0) continue
+
+    const enriched = await analyzeFields(newFields, {
+      extraContext: `Estes campos pertencem à entrada de índice ${i} de profile.${profileArrayKey}. Use somente dados dessa entrada.`,
+    })
+    newFieldsByEntry.push(...enriched)
+  }
+
+  return newFieldsByEntry
+}
+
+/**
+ * Escreve o `userValue` de cada campo pronto no elemento real da página. Campos
+ * sem valor (o usuário deixou em branco de propósito, ex: opcional) são ignorados.
+ */
+function applyFields(fields, root = document) {
+  const results = fields.map((field) => {
+    if (field.userValue == null || field.userValue === '') return { fieldId: field.fieldId, applied: false }
+    const el = getFieldElement(field.fieldId, root)
+    if (!el) return { fieldId: field.fieldId, applied: false }
+
+    const applied = fillField(el, field.userValue)
+    if (applied) el.dataset.japcFilled = 'true'
+    return { fieldId: field.fieldId, applied }
+  })
+  return results
+}
+
+function hasBlockingRequiredField(fields) {
+  return fields.some((field) => field.required && (field.userValue == null || field.userValue === ''))
+}
+
+function findNextStep(root = document) {
+  return findNextStepButton(root)
+}
+
+export { analyzeCurrentStep, expandSection, applyFields, hasBlockingRequiredField, findNextStep }
