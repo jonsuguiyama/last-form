@@ -1,9 +1,5 @@
 import styles from './optionsStyles'
 
-/**
- * Editor genérico de lista de objetos (experiências, educação, idiomas...).
- * `fields` descreve as colunas: [{ key, placeholder, multiline? }].
- */
 function ListEditor({ title, items, fields, onAdd, onRemove, onChange }) {
   return (
     <section style={styles.section}>

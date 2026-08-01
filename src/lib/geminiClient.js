@@ -1,7 +1,3 @@
-// Alias "rolante" em vez de uma versão travada: aponta sempre pro flash atual
-// (hoje resolve pro gemini-3.6-flash) e sobrevive o Google aposentando modelos
-// antigos sem quebrar o código - foi exatamente isso que aconteceu com o
-// gemini-2.5-flash, descontinuado pra novos usuários.
 const DEFAULT_MODEL = 'gemini-flash-latest'
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
@@ -19,12 +15,6 @@ class GeminiError extends Error {
   }
 }
 
-/**
- * Lê uma resposta em streaming (Server-Sent Events) do Gemini, concatenando o
- * texto de cada pedaço conforme chega. `onChunk(totalCaracteresRecebidos)` -
- * se passado - é chamado a cada pedaço, pra dar progresso real (não fabricado)
- * durante uma geração longa, em vez de silêncio até a resposta inteira chegar.
- */
 async function readSseText(response, onChunk) {
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
@@ -113,11 +103,6 @@ const FIELD_MAPPING_SCHEMA = {
   required: ['mappings'],
 }
 
-/**
- * Pede ao Gemini pra mapear descritores de campo (do domScanner) pra valores do
- * perfil. Campos já resolvidos por fieldBindings/customQA não devem ser mandados
- * aqui - resolver localmente é mais barato e mais previsível (ver fieldBindings.js).
- */
 async function mapFields({ apiKey, profile, fields, jobDescription, extraContext, onProgress }) {
   const result = await callGemini({
     apiKey,
@@ -157,11 +142,6 @@ const ADAPT_TEXT_SCHEMA = {
   required: ['adaptedText'],
 }
 
-/**
- * Reescreve `sourceText` pra caber em `maxLength` caracteres, priorizando o que for
- * mais relevante pra `jobDescription`. Nunca adiciona fatos que não estavam no texto
- * original - só resume/reorganiza.
- */
 async function adaptText({ apiKey, sourceText, maxLength, jobDescription, onProgress }) {
   const result = await callGemini({
     apiKey,
@@ -245,33 +225,29 @@ const RESUME_SCHEMA = {
   },
 }
 
-/**
- * Extrai um perfil estruturado a partir do PDF do currículo (base64, sem o prefixo
- * data:). Seções que não existem no currículo voltam como array vazio - nunca
- * inventadas.
- */
-async function parseResume({ apiKey, pdfBase64, onProgress }) {
+async function parseResume({ apiKey, resumeText, onProgress }) {
   return callGemini({
     apiKey,
     onChunk: onProgress,
     responseSchema: RESUME_SCHEMA,
     systemInstruction:
-      'Extraia os dados estruturados deste currículo em PDF. Se uma seção inteira não existir no ' +
-      'documento (ex: sem idiomas listados), retorne um array vazio para ela - não invente uma entrada.',
+      'Extraia os dados estruturados deste currículo (texto puro, extraído de um PDF - a ordem das ' +
+      'linhas pode estar levemente fora do layout visual original, com cuidado). O documento pode estar ' +
+      'em português ou inglês - leia com atenção pra não misturar campos diferentes (ex: não junte ' +
+      'telefone e email num só campo; cada um vai no seu lugar, sem o texto do outro colado junto). ' +
+      'Procure pelas seções de experiência profissional e educação mesmo que tenham outro título (ex: ' +
+      '"Professional Experience", "Employment History", "Academic Background", "Formação"), e releia o ' +
+      'texto inteiro antes de concluir que uma seção não existe - só retorne array vazio se, depois de ' +
+      'revisar com cuidado, a informação realmente não estiver em lugar nenhum do texto.',
     contents: [
       {
         role: 'user',
-        parts: [{ inlineData: { mimeType: 'application/pdf', data: pdfBase64 } }],
+        parts: [{ text: resumeText }],
       },
     ],
   })
 }
 
-/**
- * Testa a API key contra a API de verdade (GET no recurso do modelo, chamada
- * leve e sem custo de geração) em vez de só validar formato. Lança GeminiError
- * se a chave não funcionar.
- */
 async function verifyApiKey({ apiKey }) {
   if (!apiKey) {
     throw new GeminiError('Nenhuma API key informada.')

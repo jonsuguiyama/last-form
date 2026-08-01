@@ -1,5 +1,3 @@
-// Injetado manualmente num <style> dentro do Shadow DOM (ver index.jsx) - CSS
-// importado normalmente pelo Vite não alcança um shadow root.
 const panelStyles = `
   :host { all: initial; }
   .japc-panel {

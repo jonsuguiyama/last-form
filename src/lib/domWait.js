@@ -1,8 +1,3 @@
-/**
- * Resolve quando o container fica "quieto" (sem mutações) por `quietPeriodMs`,
- * ou quando `timeoutMs` é atingido, o que vier primeiro.
- * Necessário porque SPAs de vaga costumam renderizar campos de forma assíncrona.
- */
 function waitForStableDom(container = document.body, { quietPeriodMs = 300, timeoutMs = 5000 } = {}) {
   return new Promise((resolve) => {
     let quietTimer = null
@@ -29,11 +24,6 @@ function waitForStableDom(container = document.body, { quietPeriodMs = 300, time
   })
 }
 
-/**
- * Clica no elemento e espera o DOM (dentro de `scopeEl`) estabilizar em seguida.
- * Usado tanto pra seções dinâmicas ("+ Adicionar experiência") quanto pra navegação
- * entre etapas de um formulário wizard.
- */
 async function clickAndWait(el, { scopeEl = document.body, ...waitOptions } = {}) {
   el.click()
   await waitForStableDom(scopeEl, waitOptions)

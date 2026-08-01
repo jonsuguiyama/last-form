@@ -19,11 +19,6 @@ function formatEntry(entry) {
   return `[${entry.time}] ${entry.label}${type}${detail}`
 }
 
-/**
- * Log ao vivo do que a extensão está fazendo por baixo (conectar, ack,
- * progresso, erro, timeout...) direto na tela - sem precisar abrir o DevTools
- * do service worker pra saber o que travou.
- */
 function DebugPanel() {
   const [entries, setEntries] = useState(getLogHistory)
   const [open, setOpen] = useState(false)
