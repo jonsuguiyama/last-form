@@ -12,6 +12,7 @@ const LANGUAGE_TEMPLATE = { language: '', level: '' }
 function OptionsApp() {
   const [profile, setProfile] = useState(normalizeProfile())
   const [apiKey, setApiKey] = useState('')
+  const [savedApiKey, setSavedApiKey] = useState('')
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState('')
   const [extracting, setExtracting] = useState(false)
@@ -24,7 +25,18 @@ function OptionsApp() {
         sendMessage(MESSAGE_TYPES.GET_API_KEY),
       ])
       setProfile(normalizeProfile(loadedProfile))
-      setApiKey(loadedKey || import.meta.env.VITE_DEV_GEMINI_API_KEY || '')
+
+      const devKey = import.meta.env.VITE_DEV_GEMINI_API_KEY || ''
+      if (loadedKey) {
+        setApiKey(loadedKey)
+        setSavedApiKey(loadedKey)
+      } else if (devKey) {
+        // Pré-preenchimento de dev só vale de verdade se for salvo de fato -
+        // senão a tela mostra uma chave "pronta" que o background não enxerga.
+        await sendMessage(MESSAGE_TYPES.SAVE_API_KEY, devKey)
+        setApiKey(devKey)
+        setSavedApiKey(devKey)
+      }
       setLoading(false)
     })()
   }, [])
@@ -36,6 +48,7 @@ function OptionsApp() {
 
   const saveApiKey = async () => {
     await sendMessage(MESSAGE_TYPES.SAVE_API_KEY, apiKey)
+    setSavedApiKey(apiKey)
     setStatus('API key salva.')
     setTimeout(() => setStatus(''), 2000)
   }
@@ -43,7 +56,7 @@ function OptionsApp() {
   const onResumeSelected = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
-    if (!apiKey) {
+    if (!savedApiKey) {
       setStatus('Configure e salve sua API key do Gemini antes de enviar o currículo.')
       return
     }
@@ -95,6 +108,18 @@ function OptionsApp() {
     return <div style={styles.page}>Carregando…</div>
   }
 
+  let apiKeyStatus = null
+  if (apiKey !== savedApiKey) {
+    apiKeyStatus = (
+      <p style={styles.warning}>
+        ⚠ Essa chave ainda não foi salva. Clique em "Salvar" antes de usar em qualquer análise ou upload -
+        enquanto isso, a extensão continua usando {savedApiKey ? 'a chave salva anteriormente' : 'nenhuma chave'}.
+      </p>
+    )
+  } else if (savedApiKey) {
+    apiKeyStatus = <p style={styles.hint}>✓ Chave salva e em uso.</p>
+  }
+
   return (
     <div style={styles.page}>
       <h1 style={styles.h1}>LAST Form - Perfil</h1>
@@ -124,6 +149,7 @@ function OptionsApp() {
             Salvar
           </button>
         </div>
+        {apiKeyStatus}
       </section>
 
       <section style={styles.section}>
