@@ -117,7 +117,7 @@ function App() {
     return (
       <div className="japc-panel">
         <div className="japc-header">
-          <span>Job Apply Copilot</span>
+          <span>LAST Form</span>
           <button type="button" className="japc-close" onClick={() => setPhase('idle')} aria-label="Fechar">
             ×
           </button>

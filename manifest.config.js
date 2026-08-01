@@ -3,8 +3,9 @@ import pkg from './package.json' with { type: 'json' }
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'Job Apply Copilot',
-  description: 'Preenche formulários de candidatura a partir do seu currículo, com revisão manual antes de aplicar.',
+  name: 'LAST Form',
+  description:
+    'O último formulário de candidatura que você vai preencher na mão. Preenche a partir do seu currículo, com revisão manual antes de aplicar.',
   version: pkg.version,
   action: {
     default_popup: 'src/popup/index.html',

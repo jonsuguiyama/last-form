@@ -97,7 +97,7 @@ function OptionsApp() {
 
   return (
     <div style={styles.page}>
-      <h1 style={styles.h1}>Job Apply Copilot — Perfil</h1>
+      <h1 style={styles.h1}>LAST Form — Perfil</h1>
       <p style={styles.subtitle}>
         Esses dados ficam só no seu navegador (chrome.storage.local) e são usados pra preencher formulários de
         candidatura. Nada é enviado a lugar nenhum além da API do Gemini quando você aciona uma análise.
