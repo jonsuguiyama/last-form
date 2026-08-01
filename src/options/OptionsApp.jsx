@@ -92,6 +92,10 @@ function OptionsApp() {
 
   const onResumeSelected = async (event) => {
     const file = event.target.files?.[0]
+    // Reseta o input já aqui: sem isso, escolher o MESMO arquivo de novo não
+    // dispara onChange (comportamento padrão do navegador), e a tela fica
+    // parada em silêncio total, parecendo travada sem estar.
+    event.target.value = ''
     if (!file) return
 
     setExtracting(true)
