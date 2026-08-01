@@ -85,3 +85,55 @@ describe('OptionsApp - fluxo da API key', () => {
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled()
   })
 })
+
+describe('OptionsApp - upload de currículo', () => {
+  it('mantém o erro visível depois que a extração termina (guarda de regressão: mensagem não pode sumir)', async () => {
+    const user = userEvent.setup()
+    mockChrome({
+      [MESSAGE_TYPES.GET_PROFILE]: () => emptyProfile(),
+      [MESSAGE_TYPES.GET_API_KEY]: () => 'chave-ja-salva-funcionando',
+      [MESSAGE_TYPES.VERIFY_API_KEY]: () => true,
+      [MESSAGE_TYPES.PARSE_RESUME]: () => {
+        throw new Error('Gemini respondeu 503')
+      },
+    })
+
+    render(<OptionsApp />)
+
+    await screen.findByText('Currículo')
+    const input = document.querySelector('input[type="file"]')
+    const file = new File(['conteúdo falso'], 'curriculo.pdf', { type: 'application/pdf' })
+
+    await user.upload(input, file)
+
+    expect(await screen.findByText(/Erro ao extrair o currículo: Gemini respondeu 503/)).toBeInTheDocument()
+    // Não é só aparecer - tem que continuar lá depois que "extracting" termina.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(screen.getByText(/Erro ao extrair o currículo: Gemini respondeu 503/)).toBeInTheDocument()
+  })
+
+  it('resolve o perfil e revela as seções depois de uma extração bem-sucedida', async () => {
+    const user = userEvent.setup()
+    mockChrome({
+      [MESSAGE_TYPES.GET_PROFILE]: () => emptyProfile(),
+      [MESSAGE_TYPES.GET_API_KEY]: () => 'chave-ja-salva-funcionando',
+      [MESSAGE_TYPES.VERIFY_API_KEY]: () => true,
+      [MESSAGE_TYPES.PARSE_RESUME]: () => ({
+        personal: { fullName: 'Jon Suguiyama' },
+        experiences: [],
+        education: [],
+        skills: [],
+        languages: [],
+      }),
+    })
+
+    render(<OptionsApp />)
+
+    await screen.findByText('Currículo')
+    const input = document.querySelector('input[type="file"]')
+    const file = new File(['conteúdo falso'], 'curriculo.pdf', { type: 'application/pdf' })
+    await user.upload(input, file)
+
+    expect(await screen.findByDisplayValue('Jon Suguiyama')).toBeInTheDocument()
+  })
+})

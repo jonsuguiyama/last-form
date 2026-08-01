@@ -1,3 +1,5 @@
+import { logEvent } from './debugLog'
+
 const MESSAGE_TYPES = {
   MAP_FIELDS: 'MAP_FIELDS',
   ADAPT_TEXT: 'ADAPT_TEXT',
@@ -36,6 +38,8 @@ async function sendMessage(
   payload,
   { ackTimeoutMs = DEFAULT_ACK_TIMEOUT_MS, resultTimeoutMs = DEFAULT_RESULT_TIMEOUT_MS, onProgress } = {},
 ) {
+  logEvent('connect', { type })
+
   return new Promise((resolve, reject) => {
     let settled = false
     let resultTimer = null
@@ -54,11 +58,13 @@ async function sendMessage(
     const armResultTimer = () => {
       clearTimeout(resultTimer)
       resultTimer = setTimeout(() => {
+        logEvent('timeout', { type, detail: `${resultTimeoutMs / 1000}s sem novidade` })
         settle(reject, new Error(`Sem resposta em ${resultTimeoutMs / 1000}s sem novidade.`))
       }, resultTimeoutMs)
     }
 
     const ackTimer = setTimeout(() => {
+      logEvent('ack-timeout', { type, detail: `${ackTimeoutMs / 1000}s` })
       settle(
         reject,
         new Error(
@@ -70,23 +76,28 @@ async function sendMessage(
 
     port.onMessage.addListener((message) => {
       if (message?.ack) {
+        logEvent('ack', { type })
         clearTimeout(ackTimer)
         armResultTimer()
         return
       }
       if (message?.progress) {
+        logEvent('progress', { type, detail: JSON.stringify(message.progress) })
         armResultTimer()
         onProgress?.(message.progress)
         return
       }
       if (message?.error) {
+        logEvent('error', { type, detail: message.error })
         settle(reject, new Error(message.error))
       } else {
+        logEvent('result', { type })
         settle(resolve, message?.result)
       }
     })
 
     port.onDisconnect.addListener(() => {
+      logEvent('disconnect', { type })
       settle(reject, new Error('A conexão com a extensão caiu antes de uma resposta.'))
     })
 
