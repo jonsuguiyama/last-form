@@ -49,7 +49,7 @@ function ReviewPanel({ fields, phase, blocked, onChangeField, onToggleSaveAnswer
   return (
     <div className="japc-panel">
       <div className="japc-header">
-        <span>Job Apply Copilot</span>
+        <span>LAST Form</span>
         <button type="button" className="japc-close" onClick={onClose} aria-label="Fechar">
           ×
         </button>

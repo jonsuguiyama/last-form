@@ -38,7 +38,7 @@ function PopupApp() {
 
   return (
     <div style={styles.wrapper}>
-      <p style={styles.title}>Job Apply Copilot</p>
+      <p style={styles.title}>LAST Form</p>
       <button type="button" style={styles.button} onClick={analyze}>
         Analisar esta página
       </button>
