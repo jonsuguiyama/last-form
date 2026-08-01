@@ -97,7 +97,7 @@ function OptionsApp() {
 
   return (
     <div style={styles.page}>
-      <h1 style={styles.h1}>LAST Form — Perfil</h1>
+      <h1 style={styles.h1}>LAST Form - Perfil</h1>
       <p style={styles.subtitle}>
         Esses dados ficam só no seu navegador (chrome.storage.local) e são usados pra preencher formulários de
         candidatura. Nada é enviado a lugar nenhum além da API do Gemini quando você aciona uma análise.
@@ -128,7 +128,7 @@ function OptionsApp() {
 
       <section style={styles.section}>
         <h2 style={styles.h2}>Currículo</h2>
-        <p style={styles.hint}>Suba o PDF uma vez — os dados extraídos populam as seções abaixo, editáveis.</p>
+        <p style={styles.hint}>Suba o PDF uma vez: os dados extraídos populam as seções abaixo, editáveis.</p>
         <input type="file" accept="application/pdf" onChange={onResumeSelected} disabled={extracting} />
         {emptyResumeSections.length > 0 ? (
           <p style={styles.warning}>

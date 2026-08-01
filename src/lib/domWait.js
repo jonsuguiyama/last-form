@@ -1,6 +1,6 @@
 /**
  * Resolve quando o container fica "quieto" (sem mutações) por `quietPeriodMs`,
- * ou quando `timeoutMs` é atingido — o que vier primeiro.
+ * ou quando `timeoutMs` é atingido, o que vier primeiro.
  * Necessário porque SPAs de vaga costumam renderizar campos de forma assíncrona.
  */
 function waitForStableDom(container = document.body, { quietPeriodMs = 300, timeoutMs = 5000 } = {}) {

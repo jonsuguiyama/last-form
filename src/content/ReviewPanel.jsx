@@ -87,7 +87,7 @@ function ReviewPanel({ fields, phase, blocked, onChangeField, onToggleSaveAnswer
         {blocked ? (
           <span className="japc-note">Responda os campos obrigatórios em destaque antes de continuar.</span>
         ) : null}
-        <span className="japc-note">Nada é enviado automaticamente — o botão final é sempre seu.</span>
+        <span className="japc-note">Nada é enviado automaticamente. O botão final é sempre seu.</span>
       </div>
     </div>
   )
