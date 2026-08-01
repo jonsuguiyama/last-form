@@ -21,9 +21,9 @@ final de "enviar" é sempre seu.
    obrigatoriedade) e manda pro background, que resolve o que já tem salvo
    localmente (`fieldBindings`/`customQA`) e pede ao Gemini o resto.
 3. **Revisão**: um painel é injetado na própria página (Shadow DOM, não conflita com
-   o CSS do site) mostrando o valor proposto por campo, editável. Campos que faltam
-   dado no perfil ficam em destaque: obrigatórios bloqueiam o botão de preencher até
-   você responder.
+   o CSS do site) mostrando o valor proposto por campo, editável. Campos onde faltam
+   dados no perfil ficam em destaque, e campos obrigatórios bloqueiam o botão de
+   preencher até você responder.
 4. **Preenchimento**: só depois que você clica em "Preencher formulário" é que os
    valores são escritos na página de verdade. Seções dinâmicas ("+ Adicionar
    experiência") e formulários em várias etapas são tratados automaticamente,
