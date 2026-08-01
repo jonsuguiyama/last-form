@@ -13,7 +13,7 @@ final de "enviar" é sempre seu.
 
 ## Como funciona
 
-1. **Perfil**: você sobe seu currículo em PDF na tela de Opções; o Gemini extrai os
+1. **Perfil**: você sobe seu currículo em PDF na tela de Opções, o Gemini extrai os
    dados estruturados (experiências, educação, skills...) e você revisa/edita antes
    de salvar. Fica só em `chrome.storage.local`, no seu navegador.
 2. **Análise**: em qualquer página de vaga, clique no ícone da extensão. Um content
