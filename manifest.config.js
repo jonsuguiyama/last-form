@@ -7,8 +7,20 @@ export default defineManifest({
   description:
     'O último formulário de candidatura que você vai precisar preencher! Preenche a partir do seu currículo, com revisão manual antes de aplicar.',
   version: pkg.version,
+  icons: {
+    16: 'icons/icon16.png',
+    32: 'icons/icon32.png',
+    48: 'icons/icon48.png',
+    128: 'icons/icon128.png',
+  },
   action: {
     default_popup: 'src/popup/index.html',
+    default_icon: {
+      16: 'icons/icon16.png',
+      32: 'icons/icon32.png',
+      48: 'icons/icon48.png',
+      128: 'icons/icon128.png',
+    },
   },
   options_page: 'src/options/index.html',
   background: {
