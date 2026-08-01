@@ -15,12 +15,49 @@ class GeminiError extends Error {
   }
 }
 
-async function callGemini({ apiKey, model = DEFAULT_MODEL, contents, responseSchema, systemInstruction }) {
+/**
+ * Lê uma resposta em streaming (Server-Sent Events) do Gemini, concatenando o
+ * texto de cada pedaço conforme chega. `onChunk(totalCaracteresRecebidos)` -
+ * se passado - é chamado a cada pedaço, pra dar progresso real (não fabricado)
+ * durante uma geração longa, em vez de silêncio até a resposta inteira chegar.
+ */
+async function readSseText(response, onChunk) {
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let fullText = ''
+
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue
+      const jsonText = line.slice(5).trim()
+      if (!jsonText) continue
+
+      const chunk = JSON.parse(jsonText)
+      const chunkText = chunk.candidates?.[0]?.content?.parts?.[0]?.text
+      if (chunkText) {
+        fullText += chunkText
+        onChunk?.({ type: 'stream', charsReceived: fullText.length })
+      }
+    }
+  }
+
+  return fullText
+}
+
+async function callGemini({ apiKey, model = DEFAULT_MODEL, contents, responseSchema, systemInstruction, onChunk }) {
   if (!apiKey) {
     throw new GeminiError('Nenhuma API key do Gemini configurada. Adicione uma na tela de Opções.')
   }
 
-  const response = await fetch(`${API_BASE}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+  const response = await fetch(`${API_BASE}/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -40,8 +77,7 @@ async function callGemini({ apiKey, model = DEFAULT_MODEL, contents, responseSch
     throw new GeminiError(`Gemini respondeu ${response.status}`, { status: response.status, cause: body })
   }
 
-  const data = await response.json()
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+  const text = await readSseText(response, onChunk)
   if (!text) {
     throw new GeminiError('Resposta do Gemini veio sem conteúdo utilizável.')
   }
@@ -78,9 +114,10 @@ const FIELD_MAPPING_SCHEMA = {
  * perfil. Campos já resolvidos por fieldBindings/customQA não devem ser mandados
  * aqui - resolver localmente é mais barato e mais previsível (ver fieldBindings.js).
  */
-async function mapFields({ apiKey, profile, fields, jobDescription, extraContext }) {
+async function mapFields({ apiKey, profile, fields, jobDescription, extraContext, onProgress }) {
   const result = await callGemini({
     apiKey,
+    onChunk: onProgress,
     responseSchema: FIELD_MAPPING_SCHEMA,
     systemInstruction:
       'Você recebe o perfil profissional de um candidato e uma lista de campos de um formulário de ' +
@@ -121,9 +158,10 @@ const ADAPT_TEXT_SCHEMA = {
  * mais relevante pra `jobDescription`. Nunca adiciona fatos que não estavam no texto
  * original - só resume/reorganiza.
  */
-async function adaptText({ apiKey, sourceText, maxLength, jobDescription }) {
+async function adaptText({ apiKey, sourceText, maxLength, jobDescription, onProgress }) {
   const result = await callGemini({
     apiKey,
+    onChunk: onProgress,
     responseSchema: ADAPT_TEXT_SCHEMA,
     systemInstruction:
       `Reescreva o texto do usuário para ter no máximo ${maxLength} caracteres, mantendo só o essencial ` +
@@ -208,9 +246,10 @@ const RESUME_SCHEMA = {
  * data:). Seções que não existem no currículo voltam como array vazio - nunca
  * inventadas.
  */
-async function parseResume({ apiKey, pdfBase64 }) {
+async function parseResume({ apiKey, pdfBase64, onProgress }) {
   return callGemini({
     apiKey,
+    onChunk: onProgress,
     responseSchema: RESUME_SCHEMA,
     systemInstruction:
       'Extraia os dados estruturados deste currículo em PDF. Se uma seção inteira não existir no ' +

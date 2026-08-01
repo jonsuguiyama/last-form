@@ -2,6 +2,17 @@ import { MESSAGE_TYPES } from '../lib/messaging'
 import { getProfile, saveProfile, getApiKey, saveApiKey } from '../lib/storage'
 import { mapFields, adaptText, parseResume, verifyApiKey } from '../lib/geminiClient'
 import { findFieldBinding, findCustomQA } from '../lib/fieldBindings'
+import { enqueueGeminiCall } from './geminiQueue'
+
+/**
+ * Só reporta posição de fila quando há de fato disputa (mais de 1 pendente) -
+ * com uma aba só, "está na fila" seria uma informação enganosa/inútil.
+ */
+function queueProgress(onProgress) {
+  return (position, total) => {
+    if (total > 1) onProgress?.({ type: 'queue', position, total })
+  }
+}
 
 /**
  * Antes de gastar uma chamada ao Gemini, resolve localmente o que já tem
@@ -24,31 +35,37 @@ function resolveLocallyKnownFields(profile, fields) {
   return { resolved, remaining }
 }
 
-async function handleMapFields({ fields, jobDescription, extraContext }) {
+async function handleMapFields({ fields, jobDescription, extraContext }, onProgress) {
   const [profile, apiKey] = await Promise.all([getProfile(), getApiKey()])
   const { resolved, remaining } = resolveLocallyKnownFields(profile, fields)
 
   const llmMappings = remaining.length
-    ? await mapFields({ apiKey, profile, fields: remaining, jobDescription, extraContext })
+    ? await enqueueGeminiCall(
+        () => mapFields({ apiKey, profile, fields: remaining, jobDescription, extraContext, onProgress }),
+        queueProgress(onProgress),
+      )
     : []
 
   return [...resolved, ...llmMappings.map((m) => ({ ...m, source: 'llm' }))]
 }
 
-async function handleAdaptText({ sourceText, maxLength, jobDescription }) {
+async function handleAdaptText({ sourceText, maxLength, jobDescription }, onProgress) {
   const apiKey = await getApiKey()
-  return adaptText({ apiKey, sourceText, maxLength, jobDescription })
+  return enqueueGeminiCall(
+    () => adaptText({ apiKey, sourceText, maxLength, jobDescription, onProgress }),
+    queueProgress(onProgress),
+  )
 }
 
-async function handleParseResume({ pdfBase64 }) {
+async function handleParseResume({ pdfBase64 }, onProgress) {
   const apiKey = await getApiKey()
-  return parseResume({ apiKey, pdfBase64 })
+  return enqueueGeminiCall(() => parseResume({ apiKey, pdfBase64, onProgress }), queueProgress(onProgress))
 }
 
 const handlers = {
-  [MESSAGE_TYPES.MAP_FIELDS]: (payload) => handleMapFields(payload),
-  [MESSAGE_TYPES.ADAPT_TEXT]: (payload) => handleAdaptText(payload),
-  [MESSAGE_TYPES.PARSE_RESUME]: (payload) => handleParseResume(payload),
+  [MESSAGE_TYPES.MAP_FIELDS]: (payload, onProgress) => handleMapFields(payload, onProgress),
+  [MESSAGE_TYPES.ADAPT_TEXT]: (payload, onProgress) => handleAdaptText(payload, onProgress),
+  [MESSAGE_TYPES.PARSE_RESUME]: (payload, onProgress) => handleParseResume(payload, onProgress),
   [MESSAGE_TYPES.GET_PROFILE]: () => getProfile(),
   [MESSAGE_TYPES.SAVE_PROFILE]: (payload) => saveProfile(payload),
   [MESSAGE_TYPES.GET_API_KEY]: () => getApiKey(),
@@ -56,13 +73,28 @@ const handlers = {
   [MESSAGE_TYPES.VERIFY_API_KEY]: (apiKey) => verifyApiKey({ apiKey }),
 }
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  const handler = handlers[message?.type]
-  if (!handler) return false
+const PORT_NAME = 'last-form'
 
-  handler(message.payload)
-    .then((result) => sendResponse({ result }))
-    .catch((error) => sendResponse({ error: error.message }))
+/**
+ * Conexão persistente em vez de mensagem avulsa: manda um "ack" assim que
+ * recebe a mensagem (o cliente detecta um service worker travado em segundos,
+ * não esperando o timeout inteiro do resultado), e a conexão aberta mantém o
+ * service worker acordado durante toda a operação (garantia da API do Chrome).
+ */
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== PORT_NAME) return
 
-  return true // mantém o canal aberto pra resposta assíncrona
+  port.onMessage.addListener((message) => {
+    const handler = handlers[message?.type]
+    if (!handler) {
+      port.postMessage({ error: `Tipo de mensagem desconhecido: ${message?.type}` })
+      return
+    }
+
+    port.postMessage({ ack: true })
+    const onProgress = (progress) => port.postMessage({ progress })
+    handler(message.payload, onProgress)
+      .then((result) => port.postMessage({ result }))
+      .catch((error) => port.postMessage({ error: error.message }))
+  })
 })
