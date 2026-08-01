@@ -1,11 +1,13 @@
 # LAST Form
 
+[![License](https://img.shields.io/github/license/jonsuguiyama/last-form)](https://github.com/jonsuguiyama/last-form/blob/main/LICENSE)
+
 O último formulário de candidatura que você vai precisar preencher!
 
 Extensão Chrome que ajuda a preencher formulários de candidatura a vaga a partir do
-seu currículo — universal (funciona em qualquer site, não só ATS conhecidos como
+seu currículo. É universal (funciona em qualquer site, não só ATS conhecidos como
 Gupy/LinkedIn), usando o Gemini (free tier) pra mapear campos e adaptar textos a
-limites de caracteres. **Nunca envia uma candidatura sozinha** — sempre mostra um
+limites de caracteres. **Nunca envia uma candidatura sozinha**: sempre mostra um
 painel de revisão editável antes de escrever qualquer coisa na página, e o botão
 final de "enviar" é sempre seu.
 
@@ -20,13 +22,13 @@ final de "enviar" é sempre seu.
    localmente (`fieldBindings`/`customQA`) e pede ao Gemini o resto.
 3. **Revisão**: um painel é injetado na própria página (Shadow DOM, não conflita com
    o CSS do site) mostrando o valor proposto por campo, editável. Campos que faltam
-   dado no perfil ficam em destaque — obrigatórios bloqueiam o botão de preencher até
+   dado no perfil ficam em destaque: obrigatórios bloqueiam o botão de preencher até
    você responder.
 4. **Preenchimento**: só depois que você clica em "Preencher formulário" é que os
    valores são escritos na página de verdade. Seções dinâmicas ("+ Adicionar
    experiência") e formulários em várias etapas são tratados automaticamente,
    sempre com o mesmo ciclo de revisão a cada etapa nova.
-5. **Envio**: a extensão nunca clica no botão final de candidatura — isso é sempre
+5. **Envio**: a extensão nunca clica no botão final de candidatura. Isso é sempre
    manual, por design.
 
 ## Rodando localmente
@@ -53,7 +55,7 @@ npm test        # roda a suíte de testes (vitest)
 
 ## Estrutura
 
-Ver comentários em cada módulo de `src/lib/` — cada um tem uma responsabilidade
+Ver comentários em cada módulo de `src/lib/`: cada um tem uma responsabilidade
 única (scanner de DOM, espera de DOM, motor de preenchimento, navegação de wizard,
 seções dinâmicas, cliente do Gemini, schema/matching do perfil).
 
@@ -63,7 +65,7 @@ A heurística de detecção de labels, limites de caractere, botões de "+ Adici
 "próxima etapa" foi desenhada a partir de padrões comuns, mas não foi validada
 contra um navegador real ainda. Conforme você for aplicando pra vagas de verdade,
 guarde exemplos (print e, se for fácil, o HTML do formulário via DevTools → Copy
-outerHTML) numa pasta `fixtures/` — isso vira a base pra ajustar as heurísticas e os
+outerHTML) numa pasta `fixtures/`. Isso vira a base pra ajustar as heurísticas e os
 prompts do Gemini com casos reais em vez de suposições.
 
 ## Segurança
@@ -71,7 +73,21 @@ prompts do Gemini com casos reais em vez de suposições.
 - Perfil e API key ficam só em `chrome.storage.local` (nunca saem do seu navegador,
   exceto as chamadas que você mesmo aciona pra API do Gemini).
 - `.env` é usado só como conveniência em desenvolvimento (pré-preenche o campo de
-  API key na tela de Opções) e está no `.gitignore` — nunca é commitado nem vai pro
+  API key na tela de Opções) e está no `.gitignore`: nunca é commitado nem vai pro
   bundle de produção.
-- A extensão nunca clica no botão final de envio de um formulário — isso é sempre
+- A extensão nunca clica no botão final de envio de um formulário: isso é sempre
   uma ação manual sua.
+
+## Próximo passo: publicar
+
+Hoje isso roda só como extensão "unpacked" (carregada manualmente via
+`chrome://extensions`). O lugar certo pra distribuir pra outras pessoas é a
+**Chrome Web Store** (`chromewebstore.google.com`), não a Google Play Store: a
+Play Store é pra apps Android, extensões de navegador (Chrome, Edge, Brave...)
+vão na Chrome Web Store. Publicar lá exige criar uma conta de desenvolvedor
+(taxa única de $5) e passar pela revisão do Google, então antes disso vale
+validar bem em uso real e ajustar as heurísticas com os `fixtures/` reais.
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

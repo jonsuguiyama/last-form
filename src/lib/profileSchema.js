@@ -44,7 +44,7 @@ function normalizeProfile(profile = {}) {
 
 /**
  * Resolve um profilePath tipo "experiences[0].description" ou "personal.fullName"
- * contra o objeto de perfil. Retorna undefined se o caminho não existir —
+ * contra o objeto de perfil. Retorna undefined se o caminho não existir,
  * nunca lança, pra chamar sem try/catch nos pontos de uso.
  */
 function resolveProfilePath(profile, path) {
