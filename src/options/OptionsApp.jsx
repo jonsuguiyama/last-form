@@ -16,8 +16,10 @@ function hasProfileData(profile) {
 
 function OptionsApp() {
   const [profile, setProfile] = useState(normalizeProfile())
+  // 'editing': input vazio pra digitar uma chave nova. 'locked': chave já salva e
+  // verificada, mostrada como status fixo - nunca como campo pré-preenchido.
+  const [keyMode, setKeyMode] = useState('editing')
   const [apiKey, setApiKey] = useState('')
-  const [savedApiKey, setSavedApiKey] = useState('')
   const [apiKeyVerified, setApiKeyVerified] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [profileRevealed, setProfileRevealed] = useState(false)
@@ -45,13 +47,15 @@ function OptionsApp() {
           // senão a tela mostra uma chave "pronta" que o background não enxerga.
           await sendMessage(MESSAGE_TYPES.SAVE_API_KEY, devKey)
         }
-        setApiKey(keyToUse)
-        setSavedApiKey(keyToUse)
         try {
           await sendMessage(MESSAGE_TYPES.VERIFY_API_KEY, keyToUse)
           setApiKeyVerified(true)
+          setKeyMode('locked') // nunca mostra o campo com bolinhas pra chave já validada
         } catch {
+          // chave salva não funciona mais: precisa aparecer editável pra corrigir.
           setApiKeyVerified(false)
+          setApiKey(keyToUse)
+          setKeyMode('editing')
         }
       }
       setLoading(false)
@@ -69,8 +73,9 @@ function OptionsApp() {
     try {
       await sendMessage(MESSAGE_TYPES.VERIFY_API_KEY, apiKey)
       await sendMessage(MESSAGE_TYPES.SAVE_API_KEY, apiKey)
-      setSavedApiKey(apiKey)
       setApiKeyVerified(true)
+      setKeyMode('locked')
+      setApiKey('')
     } catch (error) {
       setApiKeyVerified(false)
       setApiKeyError(error.message)
@@ -79,15 +84,34 @@ function OptionsApp() {
     }
   }
 
+  const startEditingApiKey = () => {
+    setApiKey('')
+    setApiKeyError('')
+    setKeyMode('editing')
+  }
+
   const onResumeSelected = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     setExtracting(true)
-    setStatus('⏳ Processando currículo… isso pode levar alguns segundos.')
+    setStatus('⏳ Enviando currículo pro Gemini…')
     try {
       const pdfBase64 = await fileToBase64(file)
-      const extracted = await sendMessage(MESSAGE_TYPES.PARSE_RESUME, { pdfBase64 })
+      const extracted = await sendMessage(
+        MESSAGE_TYPES.PARSE_RESUME,
+        { pdfBase64 },
+        {
+          resultTimeoutMs: 30000,
+          onProgress: (progress) => {
+            if (progress.type === 'queue') {
+              setStatus(`⏳ Na fila do Gemini (posição ${progress.position} de ${progress.total})…`)
+            } else if (progress.type === 'stream') {
+              setStatus(`⏳ Recebendo resposta do Gemini… (${progress.charsReceived} caracteres)`)
+            }
+          },
+        },
+      )
       const merged = normalizeProfile({ ...profile, ...extracted })
       setProfile(merged)
       setProfileRevealed(true)
@@ -134,21 +158,6 @@ function OptionsApp() {
   const apiKeyTooShort = apiKey.trim().length < MIN_KEY_LENGTH
   const saveButtonDisabled = apiKeyTooShort || verifying
 
-  let apiKeyStatus = null
-  if (verifying) {
-    apiKeyStatus = <p style={styles.processing}>⏳ Verificando chave com a API do Gemini…</p>
-  } else if (apiKeyError) {
-    apiKeyStatus = <p style={styles.warning}>⚠ Chave não funcionou: {apiKeyError}</p>
-  } else if (apiKey !== savedApiKey || !apiKeyVerified) {
-    apiKeyStatus = (
-      <p style={styles.warning}>
-        ⚠ Essa chave ainda não foi verificada e salva. Clique em "Salvar" para testar e liberar o próximo passo.
-      </p>
-    )
-  } else {
-    apiKeyStatus = <p style={styles.success}>✓ Chave verificada e em uso.</p>
-  }
-
   return (
     <div style={styles.page}>
       <h1 style={styles.h1}>LAST Form - Perfil</h1>
@@ -159,34 +168,48 @@ function OptionsApp() {
 
       <section style={styles.section}>
         <h2 style={styles.h2}>API key do Gemini</h2>
-        <p style={styles.hint}>
-          Gere uma gratuita em{' '}
-          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
-            aistudio.google.com/apikey
-          </a>
-          .
-        </p>
-        <div style={styles.row}>
-          <input
-            type="password"
-            style={styles.input}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="AIza…"
-          />
-          <button
-            type="button"
-            style={saveButtonDisabled ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
-            disabled={saveButtonDisabled}
-            onClick={verifyAndSaveApiKey}
-          >
-            {verifying ? 'Verificando…' : 'Salvar'}
-          </button>
-        </div>
-        {apiKeyTooShort && apiKey.length > 0 ? (
-          <p style={styles.hint}>Cole a chave inteira - parece curta demais ainda.</p>
-        ) : null}
-        {apiKeyStatus}
+
+        {keyMode === 'locked' ? (
+          <div style={styles.row}>
+            <p style={styles.success}>✓ Chave configurada e verificada.</p>
+            <button type="button" style={styles.buttonSecondary} onClick={startEditingApiKey}>
+              Trocar chave
+            </button>
+          </div>
+        ) : (
+          <>
+            <p style={styles.hint}>
+              Gere uma gratuita em{' '}
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+                aistudio.google.com/apikey
+              </a>
+              .
+            </p>
+            <div style={styles.row}>
+              <input
+                type="password"
+                style={styles.input}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="AIza…"
+                autoFocus
+              />
+              <button
+                type="button"
+                style={saveButtonDisabled ? { ...styles.button, ...styles.buttonDisabled } : styles.button}
+                disabled={saveButtonDisabled}
+                onClick={verifyAndSaveApiKey}
+              >
+                {verifying ? 'Verificando…' : 'Salvar'}
+              </button>
+            </div>
+            {apiKeyTooShort && apiKey.length > 0 ? (
+              <p style={styles.hint}>Cole a chave inteira - parece curta demais ainda.</p>
+            ) : null}
+            {verifying ? <p style={styles.processing}>⏳ Verificando chave com a API do Gemini…</p> : null}
+            {apiKeyError ? <p style={styles.warning}>⚠ Chave não funcionou: {apiKeyError}</p> : null}
+          </>
+        )}
       </section>
 
       {apiKeyVerified ? (
