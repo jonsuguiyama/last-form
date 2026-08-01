@@ -9,8 +9,25 @@ limites de caracteres. **Nunca envia uma candidatura sozinha** — sempre mostra
 painel de revisão editável antes de escrever qualquer coisa na página, e o botão
 final de "enviar" é sempre seu.
 
-O plano completo de arquitetura está em `../` no histórico de conversa; este README
-cobre só o essencial pra rodar e testar.
+## Como funciona
+
+1. **Perfil**: você sobe seu currículo em PDF na tela de Opções; o Gemini extrai os
+   dados estruturados (experiências, educação, skills...) e você revisa/edita antes
+   de salvar. Fica só em `chrome.storage.local`, no seu navegador.
+2. **Análise**: em qualquer página de vaga, clique no ícone da extensão. Um content
+   script escaneia os campos do formulário (label, tipo, limite de caracteres,
+   obrigatoriedade) e manda pro background, que resolve o que já tem salvo
+   localmente (`fieldBindings`/`customQA`) e pede ao Gemini o resto.
+3. **Revisão**: um painel é injetado na própria página (Shadow DOM, não conflita com
+   o CSS do site) mostrando o valor proposto por campo, editável. Campos que faltam
+   dado no perfil ficam em destaque — obrigatórios bloqueiam o botão de preencher até
+   você responder.
+4. **Preenchimento**: só depois que você clica em "Preencher formulário" é que os
+   valores são escritos na página de verdade. Seções dinâmicas ("+ Adicionar
+   experiência") e formulários em várias etapas são tratados automaticamente,
+   sempre com o mesmo ciclo de revisão a cada etapa nova.
+5. **Envio**: a extensão nunca clica no botão final de candidatura — isso é sempre
+   manual, por design.
 
 ## Rodando localmente
 
