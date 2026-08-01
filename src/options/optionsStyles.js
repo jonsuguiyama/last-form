@@ -14,6 +14,16 @@ const styles = {
   },
   hint: { fontSize: 12, color: '#888', margin: 0 },
   warning: { fontSize: 12, color: '#9a6700', margin: 0 },
+  success: { fontSize: 12, color: '#1a7f37', fontWeight: 600, margin: 0 },
+  processing: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#1a1a1a',
+    background: '#f2f2f2',
+    padding: '10px 12px',
+    borderRadius: 8,
+    margin: 0,
+  },
   row: { display: 'flex', gap: 8, alignItems: 'center' },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 },
   input: {
@@ -54,6 +64,7 @@ const styles = {
     fontSize: 12,
     cursor: 'pointer',
   },
+  buttonDisabled: { opacity: 0.5, cursor: 'not-allowed' },
   readonlyItem: { fontSize: 12, flex: 1 },
   stickyFooter: {
     position: 'sticky',

@@ -1,6 +1,6 @@
 import { MESSAGE_TYPES } from '../lib/messaging'
 import { getProfile, saveProfile, getApiKey, saveApiKey } from '../lib/storage'
-import { mapFields, adaptText, parseResume } from '../lib/geminiClient'
+import { mapFields, adaptText, parseResume, verifyApiKey } from '../lib/geminiClient'
 import { findFieldBinding, findCustomQA } from '../lib/fieldBindings'
 
 /**
@@ -53,6 +53,7 @@ const handlers = {
   [MESSAGE_TYPES.SAVE_PROFILE]: (payload) => saveProfile(payload),
   [MESSAGE_TYPES.GET_API_KEY]: () => getApiKey(),
   [MESSAGE_TYPES.SAVE_API_KEY]: (payload) => saveApiKey(payload),
+  [MESSAGE_TYPES.VERIFY_API_KEY]: (apiKey) => verifyApiKey({ apiKey }),
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

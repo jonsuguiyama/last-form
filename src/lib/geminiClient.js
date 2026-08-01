@@ -224,4 +224,23 @@ async function parseResume({ apiKey, pdfBase64 }) {
   })
 }
 
-export { mapFields, adaptText, parseResume, GeminiError }
+/**
+ * Testa a API key contra a API de verdade (GET no recurso do modelo, chamada
+ * leve e sem custo de geração) em vez de só validar formato. Lança GeminiError
+ * se a chave não funcionar.
+ */
+async function verifyApiKey({ apiKey }) {
+  if (!apiKey) {
+    throw new GeminiError('Nenhuma API key informada.')
+  }
+
+  const response = await fetch(`${API_BASE}/${DEFAULT_MODEL}?key=${encodeURIComponent(apiKey)}`)
+  if (!response.ok) {
+    throw new GeminiError(`A API key não funcionou (Gemini respondeu ${response.status}).`, {
+      status: response.status,
+    })
+  }
+  return true
+}
+
+export { mapFields, adaptText, parseResume, verifyApiKey, GeminiError }
