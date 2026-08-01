@@ -5,7 +5,7 @@ export default defineManifest({
   manifest_version: 3,
   name: 'LAST Form',
   description:
-    'O último formulário de candidatura que você vai preencher na mão. Preenche a partir do seu currículo, com revisão manual antes de aplicar.',
+    'O último formulário de candidatura que você vai precisar preencher! Preenche a partir do seu currículo, com revisão manual antes de aplicar.',
   version: pkg.version,
   action: {
     default_popup: 'src/popup/index.html',

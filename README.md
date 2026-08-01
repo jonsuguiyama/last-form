@@ -1,6 +1,6 @@
 # LAST Form
 
-O último formulário de candidatura que você preenche na mão.
+O último formulário de candidatura que você vai precisar preencher!
 
 Extensão Chrome que ajuda a preencher formulários de candidatura a vaga a partir do
 seu currículo — universal (funciona em qualquer site, não só ATS conhecidos como
