@@ -198,6 +198,11 @@ function OptionsApp() {
               </a>
               .
             </p>
+            <p style={styles.hint}>
+              Sempre usamos o modelo Gemini Flash mais recente disponível pra sua chave (hoje resolve pro
+              gemini-3.6-flash) - o Google aposenta modelos antigos com frequência, então não travamos numa versão
+              fixa que pode parar de funcionar sozinha.
+            </p>
             <div style={styles.row}>
               <input
                 type="password"
