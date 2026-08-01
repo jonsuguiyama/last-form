@@ -24,7 +24,6 @@ describe('setNativeValue', () => {
     const input = document.createElement('input')
     document.body.appendChild(input)
 
-    // Simula o que o React faz: guarda um "last value" na própria instância.
     let trackedValue = ''
     Object.defineProperty(input, '_reactTrackedValue', {
       get: () => trackedValue,

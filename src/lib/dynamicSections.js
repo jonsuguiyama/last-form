@@ -19,12 +19,6 @@ function nearestHeadingText(el) {
   return heading ? heading.textContent : container.textContent.slice(0, 200)
 }
 
-/**
- * Encontra botões de "+ Adicionar" e tenta associá-los a uma seção conhecida
- * (experiências, educação) pelo texto do heading mais próximo. Heurística - alvo
- * de ajuste conforme exemplos reais forem chegando (ver plano, "Coleta de exemplos
- * reais").
- */
 function findAddButtonsBySection(root = document) {
   const buttons = Array.from(root.querySelectorAll('button, a')).filter(isAddButton)
   const bySection = {}

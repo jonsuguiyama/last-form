@@ -4,7 +4,7 @@ function normalizeLabel(label) {
   return (label ?? '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // remove acentos (marcas de combinação Unicode)
+    .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -40,11 +40,6 @@ function bestMatch(label, candidates, getPattern) {
   return best
 }
 
-/**
- * Se o label de um campo bate com um fieldBinding salvo, resolve o valor direto do
- * perfil - sem chamar o LLM. Tem prioridade sobre o mapeamento por IA (ver plano,
- * seção "Decisões de arquitetura importantes").
- */
 function findFieldBinding(profile, label) {
   const match = bestMatch(label, profile.fieldBindings ?? [], (b) => b.labelPattern)
   if (!match) return null
@@ -53,10 +48,6 @@ function findFieldBinding(profile, label) {
   return { source: 'fieldBinding', profilePath: match.profilePath, value }
 }
 
-/**
- * Mesma ideia, mas pra perguntas livres (customQA) que não apontam pra um campo
- * estruturado do perfil - ex: "Você tem CNH categoria B?".
- */
 function findCustomQA(profile, label) {
   const match = bestMatch(label, profile.customQA ?? [], (qa) => qa.questionPattern)
   if (!match) return null

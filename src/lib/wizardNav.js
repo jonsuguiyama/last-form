@@ -14,11 +14,6 @@ function textOf(el) {
   return (el.value || el.textContent || el.getAttribute('aria-label') || '').trim()
 }
 
-/**
- * Procura um botão de "próxima etapa" dentro de `root`. Deliberadamente NÃO detecta
- * o botão final de envio (SUBMIT_PATTERN) - isso é tratado como "não tem próxima
- * etapa", devolvendo o controle pro usuário (ver plano: "nunca envia sozinho").
- */
 function findNextStepButton(root = document) {
   const candidates = Array.from(root.querySelectorAll('button, a, input[type="submit"], input[type="button"]'))
     .filter(isNavButton)

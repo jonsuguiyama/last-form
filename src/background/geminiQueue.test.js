@@ -48,8 +48,6 @@ describe('enqueueGeminiCall', () => {
 
     await vi.advanceTimersByTimeAsync(MIN_INTERVAL_MS * 3)
 
-    // O 3º item entrou na fila vendo 3 pendentes na posição 3, e foi progredindo
-    // pra posição 1 conforme os anteriores saíram.
     const thirdItemPositions = positions.filter(([id]) => id === 3).map(([, position]) => position)
     expect(thirdItemPositions[0]).toBe(3)
     expect(thirdItemPositions.at(-1)).toBe(1)
@@ -59,8 +57,6 @@ describe('enqueueGeminiCall', () => {
     const onQueue = vi.fn()
     const failing = enqueueGeminiCall(() => Promise.reject(new Error('cota estourada')), onQueue)
     const succeeding = enqueueGeminiCall(() => Promise.resolve('ok'), onQueue)
-    // Anexa os matchers já, antes de avançar os timers - senão a rejeição
-    // acontece "sem dono" por um instante e o Vitest reclama de unhandled rejection.
     const failingAssertion = expect(failing).rejects.toThrow('cota estourada')
     const succeedingAssertion = expect(succeeding).resolves.toBe('ok')
 

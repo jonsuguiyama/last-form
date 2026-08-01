@@ -34,6 +34,7 @@ const styles = {
     fontSize: 13,
     fontFamily: 'inherit',
   },
+  inputMissing: { border: '1px solid #d97706', background: '#fffaf0' },
   textarea: {
     width: '100%',
     padding: '8px 10px',

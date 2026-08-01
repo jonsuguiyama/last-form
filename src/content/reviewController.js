@@ -11,11 +11,6 @@ function extractJobDescription() {
   return text && text.length > 40 ? text.slice(0, 4000) : null
 }
 
-/**
- * Roda o ciclo de análise: escaneia campos visíveis não preenchidos, manda pro
- * background mapear (que resolve fieldBindings/customQA localmente e o resto via
- * LLM), e adapta valores que estourem o limite de caracteres do campo.
- */
 async function analyzeFields(fields, { extraContext } = {}) {
   if (fields.length === 0) return []
 
@@ -51,11 +46,6 @@ async function analyzeCurrentStep(root = document) {
   return { fields: enriched, addButtons: findAddButtonsBySection(root) }
 }
 
-/**
- * Clica no botão "+" da seção `count` vezes, re-escaneia só os campos que surgiram
- * e pede pro LLM mapear cada bloco novo com contexto de qual entrada do perfil ele
- * corresponde (ver plano: seções dinâmicas).
- */
 async function expandSection(buttonEl, count, profileArrayKey, root = document) {
   const before = new Set(scanFields(root).map((f) => f.fieldId))
   const newFieldsByEntry = []
@@ -77,10 +67,6 @@ async function expandSection(buttonEl, count, profileArrayKey, root = document) 
   return newFieldsByEntry
 }
 
-/**
- * Escreve o `userValue` de cada campo pronto no elemento real da página. Campos
- * sem valor (o usuário deixou em branco de propósito, ex: opcional) são ignorados.
- */
 function applyFields(fields, root = document) {
   const results = fields.map((field) => {
     if (field.userValue == null || field.userValue === '') return { fieldId: field.fieldId, applied: false }

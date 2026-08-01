@@ -104,10 +104,6 @@ function ensureFieldId(el) {
   return el.dataset.japcFieldId
 }
 
-/**
- * Extrai descritores de campo de um formulário (ou do documento inteiro).
- * Não interpreta nada, só descreve o que existe no DOM.
- */
 function scanFields(root = document) {
   resetFieldIds()
   const elements = Array.from(root.querySelectorAll(FIELD_SELECTOR))

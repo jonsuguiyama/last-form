@@ -16,23 +16,6 @@ const PORT_NAME = 'last-form'
 const DEFAULT_ACK_TIMEOUT_MS = 3000
 const DEFAULT_RESULT_TIMEOUT_MS = 20000
 
-/**
- * Fala com o background por uma conexão persistente (chrome.runtime.connect),
- * não uma mensagem avulsa. Duas vantagens sobre sendMessage de tiro único:
- *
- * 1. Detecção rápida de falha: o background manda um "ack" assim que recebe a
- *    mensagem. Se isso não chegar em `ackTimeoutMs`, sabemos na hora que o
- *    service worker travou/não respondeu - sem esperar o timeout inteiro do
- *    resultado só pra descobrir que nada aconteceu.
- * 2. A conexão aberta mantém o service worker acordado durante a operação
- *    (garantia da própria API do Chrome), em vez de só torcer pra ele não
- *    dormir no meio de uma chamada demorada ao Gemini.
- *
- * `resultTimeoutMs` é reiniciado a cada evento de progresso - ele mede
- * inatividade, não o tempo total da operação, então uma resposta longa que
- * está genuinamente chegando aos poucos (streaming) nunca estoura por conta
- * só de demorar; só estoura se realmente parar de vir dado.
- */
 async function sendMessage(
   type,
   payload,

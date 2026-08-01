@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import OptionsApp from './OptionsApp'
 import { MESSAGE_TYPES } from '../lib/messaging'
 import { emptyProfile } from '../lib/profileSchema'
 import { mockChromePort as mockChrome } from '../test/mockChromePort'
+
+vi.mock('./pdfText', () => ({ extractPdfText: vi.fn().mockResolvedValue('texto extraído do pdf') }))
 
 describe('OptionsApp - fluxo da API key', () => {
   it('começa em modo de edição, sem seção de Currículo, quando não há chave nem perfil salvos', async () => {
@@ -107,7 +109,7 @@ describe('OptionsApp - upload de currículo', () => {
     await user.upload(input, file)
 
     expect(await screen.findByText(/Erro ao extrair o currículo: Gemini respondeu 503/)).toBeInTheDocument()
-    // Não é só aparecer - tem que continuar lá depois que "extracting" termina.
+    // Must still be there after "extracting" flips back to false, not just appear momentarily.
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(screen.getByText(/Erro ao extrair o currículo: Gemini respondeu 503/)).toBeInTheDocument()
   })

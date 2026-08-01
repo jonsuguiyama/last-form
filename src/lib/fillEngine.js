@@ -1,11 +1,5 @@
 import { clickAndWait } from './domWait'
 
-/**
- * Escreve num input/textarea usando o setter nativo do prototype, não `el.value = x`.
- * Necessário porque React/Vue guardam o valor no próprio estado do framework - só
- * disparar 'input' depois de um `el.value = x` direto não é suficiente, porque o
- * framework ignora a mudança (o setter da instância foi sobrescrito pelo framework).
- */
 function setNativeValue(el, value) {
   const prototype = Object.getPrototypeOf(el)
   const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value')
@@ -32,10 +26,6 @@ function fillCheckable(el, value) {
   return true
 }
 
-/**
- * Preenche um único elemento de formulário de acordo com seu tipo. Retorna
- * true/false indicando sucesso, pra quem chama decidir se reporta erro.
- */
 function fillField(el, value) {
   if (value == null) return false
 
@@ -46,11 +36,6 @@ function fillField(el, value) {
   return true
 }
 
-/**
- * Clica no botão "+ Adicionar" `count` vezes (uma por entrada que falta no perfil),
- * esperando o DOM estabilizar entre cliques - necessário pra seções dinâmicas tipo
- * "Experiência"/"Educação" que só existem depois do clique.
- */
 async function addRepeatableEntries(addButtonEl, count, { scopeEl = document.body } = {}) {
   for (let i = 0; i < count; i += 1) {
     await clickAndWait(addButtonEl, { scopeEl, quietPeriodMs: 300, timeoutMs: 5000 })

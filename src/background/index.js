@@ -4,21 +4,12 @@ import { mapFields, adaptText, parseResume, verifyApiKey } from '../lib/geminiCl
 import { findFieldBinding, findCustomQA } from '../lib/fieldBindings'
 import { enqueueGeminiCall } from './geminiQueue'
 
-/**
- * Só reporta posição de fila quando há de fato disputa (mais de 1 pendente) -
- * com uma aba só, "está na fila" seria uma informação enganosa/inútil.
- */
 function queueProgress(onProgress) {
   return (position, total) => {
     if (total > 1) onProgress?.({ type: 'queue', position, total })
   }
 }
 
-/**
- * Antes de gastar uma chamada ao Gemini, resolve localmente o que já tem
- * fieldBinding/customQA salvo (ver plano: "fieldBindings tem prioridade sobre o LLM").
- * Retorna os já resolvidos e o que ainda precisa ir pro LLM.
- */
 function resolveLocallyKnownFields(profile, fields) {
   const resolved = []
   const remaining = []
@@ -57,9 +48,9 @@ async function handleAdaptText({ sourceText, maxLength, jobDescription }, onProg
   )
 }
 
-async function handleParseResume({ pdfBase64 }, onProgress) {
+async function handleParseResume({ resumeText }, onProgress) {
   const apiKey = await getApiKey()
-  return enqueueGeminiCall(() => parseResume({ apiKey, pdfBase64, onProgress }), queueProgress(onProgress))
+  return enqueueGeminiCall(() => parseResume({ apiKey, resumeText, onProgress }), queueProgress(onProgress))
 }
 
 const handlers = {
@@ -75,12 +66,6 @@ const handlers = {
 
 const PORT_NAME = 'last-form'
 
-/**
- * Conexão persistente em vez de mensagem avulsa: manda um "ack" assim que
- * recebe a mensagem (o cliente detecta um service worker travado em segundos,
- * não esperando o timeout inteiro do resultado), e a conexão aberta mantém o
- * service worker acordado durante toda a operação (garantia da API do Chrome).
- */
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== PORT_NAME) return
 

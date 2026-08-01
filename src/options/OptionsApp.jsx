@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sendMessage, MESSAGE_TYPES } from '../lib/messaging'
 import { normalizeProfile } from '../lib/profileSchema'
-import { fileToBase64 } from './resumeUpload'
+import { extractPdfText } from './pdfText'
 import styles from './optionsStyles'
 import ListEditor from './ListEditor'
 import DebugPanel from './DebugPanel'
@@ -10,6 +10,15 @@ const EXPERIENCE_TEMPLATE = { company: '', title: '', startDate: '', endDate: ''
 const EDUCATION_TEMPLATE = { institution: '', degree: '', field: '', startDate: '', endDate: '' }
 const LANGUAGE_TEMPLATE = { language: '', level: '' }
 const MIN_KEY_LENGTH = 20
+const PERSONAL_FIELDS = [
+  { key: 'fullName', placeholder: 'Nome completo' },
+  { key: 'email', placeholder: 'Email' },
+  { key: 'phone', placeholder: 'Telefone' },
+  { key: 'city', placeholder: 'Cidade' },
+  { key: 'address', placeholder: 'Endereço' },
+  { key: 'country', placeholder: 'País' },
+]
+const PERSONAL_FIELD_KEYS = PERSONAL_FIELDS.map((field) => field.key)
 
 function hasProfileData(profile) {
   return Boolean(profile.personal.fullName) || profile.experiences.length > 0 || profile.education.length > 0
@@ -17,19 +26,22 @@ function hasProfileData(profile) {
 
 function OptionsApp() {
   const [profile, setProfile] = useState(normalizeProfile())
-  // 'editing': input vazio pra digitar uma chave nova. 'locked': chave já salva e
-  // verificada, mostrada como status fixo - nunca como campo pré-preenchido.
+  // 'editing': empty input to type a new key. 'locked': key already saved and
+  // verified, shown as a fixed status - never as a pre-filled field.
   const [keyMode, setKeyMode] = useState('editing')
   const [apiKey, setApiKey] = useState('')
   const [apiKeyVerified, setApiKeyVerified] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [profileRevealed, setProfileRevealed] = useState(false)
+  const [profileSaveStatus, setProfileSaveStatus] = useState('')
   const [apiKeyError, setApiKeyError] = useState('')
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState('')
   const [extracting, setExtracting] = useState(false)
   const [resumeError, setResumeError] = useState('')
+  const [resumeFileName, setResumeFileName] = useState('')
   const [emptyResumeSections, setEmptyResumeSections] = useState([])
+  const [emptyPersonalFields, setEmptyPersonalFields] = useState([])
 
   useEffect(() => {
     ;(async () => {
@@ -45,16 +57,16 @@ function OptionsApp() {
       const keyToUse = loadedKey || devKey
       if (keyToUse) {
         if (!loadedKey) {
-          // Pré-preenchimento de dev só vale de verdade se for salvo de fato -
-          // senão a tela mostra uma chave "pronta" que o background não enxerga.
+          // The dev prefill only counts if it's actually persisted - otherwise
+          // the screen shows a "ready" key the background can't see.
           await sendMessage(MESSAGE_TYPES.SAVE_API_KEY, devKey)
         }
         try {
           await sendMessage(MESSAGE_TYPES.VERIFY_API_KEY, keyToUse)
           setApiKeyVerified(true)
-          setKeyMode('locked') // nunca mostra o campo com bolinhas pra chave já validada
+          setKeyMode('locked') // never show the masked field for an already-verified key
         } catch {
-          // chave salva não funciona mais: precisa aparecer editável pra corrigir.
+          // Saved key stopped working: needs to show up editable so it can be fixed.
           setApiKeyVerified(false)
           setApiKey(keyToUse)
           setKeyMode('editing')
@@ -67,6 +79,8 @@ function OptionsApp() {
   const saveProfile = async (next) => {
     setProfile(next)
     await sendMessage(MESSAGE_TYPES.SAVE_PROFILE, next)
+    setProfileSaveStatus('Perfil salvo.')
+    setTimeout(() => setProfileSaveStatus(''), 2500)
   }
 
   const verifyAndSaveApiKey = async () => {
@@ -94,20 +108,20 @@ function OptionsApp() {
 
   const onResumeSelected = async (event) => {
     const file = event.target.files?.[0]
-    // Reseta o input já aqui: sem isso, escolher o MESMO arquivo de novo não
-    // dispara onChange (comportamento padrão do navegador), e a tela fica
-    // parada em silêncio total, parecendo travada sem estar.
+    // Reset now: without it, re-picking the same file never fires onChange again.
     event.target.value = ''
     if (!file) return
 
     setExtracting(true)
     setResumeError('')
-    setStatus('⏳ Enviando currículo pro Gemini…')
+    setResumeFileName(file.name)
+    setStatus('⏳ Lendo o PDF localmente…')
     try {
-      const pdfBase64 = await fileToBase64(file)
+      const resumeText = await extractPdfText(file)
+      setStatus('⏳ Enviando currículo pro Gemini…')
       const extracted = await sendMessage(
         MESSAGE_TYPES.PARSE_RESUME,
-        { pdfBase64 },
+        { resumeText },
         {
           resultTimeoutMs: 30000,
           onProgress: (progress) => {
@@ -127,7 +141,15 @@ function OptionsApp() {
         (key) => (merged[key]?.length ?? 0) === 0,
       )
       setEmptyResumeSections(empties)
-      setStatus('Currículo extraído. Revise os campos abaixo e clique em "Salvar perfil" quando estiver pronto.')
+
+      const emptyPersonal = PERSONAL_FIELD_KEYS.filter((key) => !merged.personal[key])
+      setEmptyPersonalFields(emptyPersonal)
+
+      setStatus(
+        emptyPersonal.length > 0 || empties.length > 0
+          ? 'Currículo extraído, mas alguns campos ficaram vazios (marcados em laranja abaixo). Revise e complete antes de salvar.'
+          : 'Currículo extraído. Revise os campos abaixo e clique em "Salvar perfil" quando estiver pronto.',
+      )
     } catch (error) {
       setStatus('')
       setResumeError(error.message)
@@ -234,7 +256,10 @@ function OptionsApp() {
         <section style={styles.section}>
           <h2 style={styles.h2}>Currículo</h2>
           <p style={styles.hint}>Suba o PDF uma vez: os dados extraídos populam as seções abaixo, editáveis.</p>
-          <input type="file" accept="application/pdf" onChange={onResumeSelected} disabled={extracting} />
+          <div style={styles.row}>
+            <input type="file" accept="application/pdf" onChange={onResumeSelected} disabled={extracting} />
+            {resumeFileName ? <span style={styles.hint}>{resumeFileName}</span> : null}
+          </div>
           {status ? <p style={styles.processing}>{status}</p> : null}
           {resumeError ? <p style={styles.warning}>⚠ Erro ao extrair o currículo: {resumeError}</p> : null}
           {emptyResumeSections.length > 0 ? (
@@ -249,13 +274,19 @@ function OptionsApp() {
         <>
           <section style={styles.section}>
             <h2 style={styles.h2}>Dados pessoais</h2>
+            {emptyPersonalFields.length > 0 ? (
+              <p style={styles.warning}>Campos em laranja não vieram do PDF - preencha ou confirme.</p>
+            ) : null}
             <div style={styles.grid2}>
-              <input style={styles.input} placeholder="Nome completo" value={profile.personal.fullName} onChange={(e) => updatePersonal('fullName', e.target.value)} />
-              <input style={styles.input} placeholder="Email" value={profile.personal.email} onChange={(e) => updatePersonal('email', e.target.value)} />
-              <input style={styles.input} placeholder="Telefone" value={profile.personal.phone} onChange={(e) => updatePersonal('phone', e.target.value)} />
-              <input style={styles.input} placeholder="Cidade" value={profile.personal.city} onChange={(e) => updatePersonal('city', e.target.value)} />
-              <input style={styles.input} placeholder="Endereço" value={profile.personal.address} onChange={(e) => updatePersonal('address', e.target.value)} />
-              <input style={styles.input} placeholder="País" value={profile.personal.country} onChange={(e) => updatePersonal('country', e.target.value)} />
+              {PERSONAL_FIELDS.map(({ key, placeholder }) => (
+                <input
+                  key={key}
+                  style={emptyPersonalFields.includes(key) ? { ...styles.input, ...styles.inputMissing } : styles.input}
+                  placeholder={placeholder}
+                  value={profile.personal[key]}
+                  onChange={(e) => updatePersonal(key, e.target.value)}
+                />
+              ))}
               <input style={styles.input} placeholder="LinkedIn" value={profile.personal.links.linkedin} onChange={(e) => updateLink('linkedin', e.target.value)} />
               <input style={styles.input} placeholder="GitHub" value={profile.personal.links.github} onChange={(e) => updateLink('github', e.target.value)} />
               <input style={styles.input} placeholder="Portfólio" value={profile.personal.links.portfolio} onChange={(e) => updateLink('portfolio', e.target.value)} />
@@ -361,7 +392,7 @@ function OptionsApp() {
             <button type="button" style={styles.button} onClick={() => saveProfile(profile)}>
               Salvar perfil
             </button>
-            {status && !extracting ? <span style={styles.hint}>{status}</span> : null}
+            {profileSaveStatus ? <span style={styles.success}>{profileSaveStatus}</span> : null}
           </div>
         </>
       ) : null}
