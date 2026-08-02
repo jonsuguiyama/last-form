@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { sendMessage, MESSAGE_TYPES } from '../lib/messaging'
 import { normalizeProfile } from '../lib/profileSchema'
 import { extractPdfText } from './pdfText'
+import { logEvent } from '../lib/debugLog'
 import styles from './optionsStyles'
 import ListEditor from './ListEditor'
 import DebugPanel from './DebugPanel'
@@ -113,6 +114,7 @@ function OptionsApp() {
     setStatus('⏳ Lendo o PDF localmente…')
     try {
       const resumeText = await extractPdfText(file)
+      logEvent('pdf-text-extracted', { detail: resumeText.slice(0, 3000) })
       setStatus('⏳ Enviando currículo pro Gemini…')
       const extracted = await sendMessage(
         MESSAGE_TYPES.PARSE_RESUME,
@@ -128,6 +130,7 @@ function OptionsApp() {
           },
         },
       )
+      logEvent('gemini-parsed-resume', { detail: JSON.stringify(extracted).slice(0, 3000) })
       const merged = normalizeProfile({ ...profile, ...extracted })
       setProfile(merged)
       setProfileRevealed(true)
