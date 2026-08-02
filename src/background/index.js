@@ -69,17 +69,31 @@ const PORT_NAME = 'last-form'
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== PORT_NAME) return
 
+  let disconnected = false
+  port.onDisconnect.addListener(() => {
+    disconnected = true
+  })
+
+  const safePost = (message) => {
+    if (disconnected) return
+    try {
+      port.postMessage(message)
+    } catch {
+      disconnected = true
+    }
+  }
+
   port.onMessage.addListener((message) => {
     const handler = handlers[message?.type]
     if (!handler) {
-      port.postMessage({ error: `Tipo de mensagem desconhecido: ${message?.type}` })
+      safePost({ error: `Tipo de mensagem desconhecido: ${message?.type}` })
       return
     }
 
-    port.postMessage({ ack: true })
-    const onProgress = (progress) => port.postMessage({ progress })
+    safePost({ ack: true })
+    const onProgress = (progress) => safePost({ progress })
     handler(message.payload, onProgress)
-      .then((result) => port.postMessage({ result }))
-      .catch((error) => port.postMessage({ error: error.message }))
+      .then((result) => safePost({ result }))
+      .catch((error) => safePost({ error: error.message }))
   })
 })
