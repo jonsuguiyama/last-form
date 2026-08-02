@@ -1,5 +1,5 @@
-import { scanFields, getFieldElement } from '../lib/domScanner'
-import { fillField, addRepeatableEntries } from '../lib/fillEngine'
+import { scanFields, getFieldElement, getFieldElements } from '../lib/domScanner'
+import { fillField, fillRadioGroup, fillButtonGroup, addRepeatableEntries } from '../lib/fillEngine'
 import { findAddButtonsBySection } from '../lib/dynamicSections'
 import { findNextStepButton } from '../lib/wizardNav'
 import { sendMessage, MESSAGE_TYPES } from '../lib/messaging'
@@ -67,17 +67,31 @@ async function expandSection(buttonEl, count, profileArrayKey, root = document) 
   return newFieldsByEntry
 }
 
-function applyFields(fields, root = document) {
-  const results = fields.map((field) => {
-    if (field.userValue == null || field.userValue === '') return { fieldId: field.fieldId, applied: false }
-    const el = getFieldElement(field.fieldId, root)
-    if (!el) return { fieldId: field.fieldId, applied: false }
+function applyGroupField(field, root, fillGroup) {
+  const els = getFieldElements(field.fieldId, root)
+  if (els.length === 0) return { fieldId: field.fieldId, applied: false }
 
-    const applied = fillField(el, field.userValue)
-    if (applied) el.dataset.japcFilled = 'true'
-    return { fieldId: field.fieldId, applied }
+  const applied = fillGroup(els, field.userValue, root)
+  if (applied) els.forEach((el) => (el.dataset.japcFilled = 'true'))
+  return { fieldId: field.fieldId, applied }
+}
+
+function applySingleField(field, root) {
+  const el = getFieldElement(field.fieldId, root)
+  if (!el) return { fieldId: field.fieldId, applied: false }
+
+  const applied = fillField(el, field.userValue)
+  if (applied) el.dataset.japcFilled = 'true'
+  return { fieldId: field.fieldId, applied }
+}
+
+function applyFields(fields, root = document) {
+  return fields.map((field) => {
+    if (field.userValue == null || field.userValue === '') return { fieldId: field.fieldId, applied: false }
+    if (field.tag === 'radio-group') return applyGroupField(field, root, fillRadioGroup)
+    if (field.tag === 'button-group') return applyGroupField(field, root, fillButtonGroup)
+    return applySingleField(field, root)
   })
-  return results
 }
 
 function hasBlockingRequiredField(fields) {

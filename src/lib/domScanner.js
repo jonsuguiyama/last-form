@@ -1,7 +1,13 @@
+import { NEXT_STEP_PATTERN, BACK_STEP_PATTERN, SUBMIT_PATTERN } from './wizardNav'
+import { ADD_BUTTON_PATTERN } from './dynamicSections'
+
 const FIELD_SELECTOR = 'input, textarea, select'
 const COUNTER_PATTERN = /(\d{1,6})\s{0,2}\/\s{0,2}(\d{1,6})/
 
 const EXCLUDED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image'])
+const KNOWN_PURPOSE_PATTERNS = [NEXT_STEP_PATTERN, BACK_STEP_PATTERN, SUBMIT_PATTERN, ADD_BUTTON_PATTERN]
+const MIN_BUTTON_GROUP_SIZE = 2
+const MAX_BUTTON_GROUP_SIZE = 6
 
 let nextFieldId = 0
 
@@ -104,35 +110,142 @@ function ensureFieldId(el) {
   return el.dataset.japcFieldId
 }
 
+function buildFieldDescriptor(el, root) {
+  return {
+    fieldId: ensureFieldId(el),
+    tag: el.tagName.toLowerCase(),
+    type: el.type || 'text',
+    label: findLabel(el, root),
+    name: el.name || null,
+    id: el.id || null,
+    required: isRequired(el),
+    charLimit: findCharLimit(el),
+    section: findSection(el),
+    currentValue: el.value || null,
+    options: el.tagName.toLowerCase() === 'select' ? Array.from(el.options).map((o) => o.textContent.trim()) : null,
+  }
+}
+
+function buildRadioGroupDescriptor(radios, root) {
+  const groupId = String(nextFieldId++)
+  radios.forEach((el) => {
+    el.dataset.japcFieldId = groupId
+  })
+
+  const first = radios[0]
+  const groupLabel = findSection(first) ?? labelFromNearbyText(first)
+
+  return {
+    fieldId: groupId,
+    tag: 'radio-group',
+    type: 'radio-group',
+    label: groupLabel,
+    name: first.name || null,
+    id: null,
+    required: radios.some(isRequired),
+    charLimit: null,
+    section: findSection(first),
+    currentValue: null,
+    options: radios.map((el) => findLabel(el, root)).filter(Boolean),
+  }
+}
+
+function buttonText(el) {
+  return (el.textContent || el.getAttribute('aria-label') || '').trim()
+}
+
+function hasKnownPurpose(el) {
+  const text = buttonText(el)
+  return KNOWN_PURPOSE_PATTERNS.some((pattern) => pattern.test(text))
+}
+
+function findButtonGroupQuestion(container) {
+  const prev = container.previousElementSibling
+  const prevText = prev?.textContent?.trim()
+  if (prevText && prevText.length < 200) return prevText
+
+  const section = container.closest('fieldset, section, [role="group"]')
+  const heading = section?.querySelector('legend, h1, h2, h3, h4, label, p')
+  const headingText = heading?.textContent?.trim()
+  return headingText && headingText.length < 200 ? headingText : null
+}
+
+function findButtonChoiceGroups(root) {
+  const candidates = Array.from(root.querySelectorAll('form button'))
+    .filter((el) => !el.disabled)
+    .filter((el) => el.dataset.japcFilled !== 'true')
+    .filter(isVisible)
+    .filter((el) => buttonText(el).length > 0)
+    .filter((el) => !hasKnownPurpose(el))
+
+  const byParent = new Map()
+  for (const el of candidates) {
+    const parent = el.parentElement
+    if (!byParent.has(parent)) byParent.set(parent, [])
+    byParent.get(parent).push(el)
+  }
+
+  return [...byParent.entries()]
+    .filter(([, buttons]) => buttons.length >= MIN_BUTTON_GROUP_SIZE && buttons.length <= MAX_BUTTON_GROUP_SIZE)
+    .map(([parent, buttons]) => ({ parent, buttons }))
+}
+
+function buildButtonGroupDescriptor(parent, buttons) {
+  const groupId = String(nextFieldId++)
+  buttons.forEach((el) => {
+    el.dataset.japcFieldId = groupId
+  })
+
+  return {
+    fieldId: groupId,
+    tag: 'button-group',
+    type: 'button-group',
+    label: findButtonGroupQuestion(parent),
+    name: null,
+    id: null,
+    required: false,
+    charLimit: null,
+    section: findSection(parent),
+    currentValue: null,
+    options: buttons.map(buttonText).filter(Boolean),
+  }
+}
+
 function scanFields(root = document) {
   resetFieldIds()
   const elements = Array.from(root.querySelectorAll(FIELD_SELECTOR))
-
-  return elements
     .filter((el) => !EXCLUDED_INPUT_TYPES.has(el.type))
     .filter((el) => !el.disabled)
     .filter((el) => el.dataset.japcFilled !== 'true')
     .filter(isVisible)
-    .map((el) => ({
-      fieldId: ensureFieldId(el),
-      tag: el.tagName.toLowerCase(),
-      type: el.type || 'text',
-      label: findLabel(el, root),
-      name: el.name || null,
-      id: el.id || null,
-      required: isRequired(el),
-      charLimit: findCharLimit(el),
-      section: findSection(el),
-      currentValue: el.value || null,
-      options:
-        el.tagName.toLowerCase() === 'select'
-          ? Array.from(el.options).map((o) => o.textContent.trim())
-          : null,
-    }))
+
+  const radioGroups = new Map()
+  const singles = []
+
+  for (const el of elements) {
+    if (el.type === 'radio' && el.name) {
+      if (!radioGroups.has(el.name)) radioGroups.set(el.name, [])
+      radioGroups.get(el.name).push(el)
+    } else {
+      singles.push(el)
+    }
+  }
+
+  const radioGroupDescriptors = [...radioGroups.values()].map((radios) => buildRadioGroupDescriptor(radios, root))
+  const buttonGroupDescriptors = findButtonChoiceGroups(root).map(({ parent, buttons }) =>
+    buildButtonGroupDescriptor(parent, buttons),
+  )
+  const singleDescriptors = singles.map((el) => buildFieldDescriptor(el, root))
+
+  return [...radioGroupDescriptors, ...buttonGroupDescriptors, ...singleDescriptors]
 }
 
 function getFieldElement(fieldId, root = document) {
   return root.querySelector(`[data-japc-field-id="${fieldId}"]`)
 }
 
-export { scanFields, getFieldElement, findLabel, findCharLimit, isRequired }
+function getFieldElements(fieldId, root = document) {
+  return Array.from(root.querySelectorAll(`[data-japc-field-id="${fieldId}"]`))
+}
+
+export { scanFields, getFieldElement, getFieldElements, findLabel, findCharLimit, isRequired }

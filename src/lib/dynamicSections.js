@@ -35,4 +35,4 @@ function findAddButtonsBySection(root = document) {
   return bySection
 }
 
-export { findAddButtonsBySection }
+export { findAddButtonsBySection, ADD_BUTTON_PATTERN }

@@ -20,12 +20,27 @@ function FieldRow({ field, onChange, onToggleSaveAnswer }) {
         {field.label ?? field.name ?? 'Campo sem nome'}
         <span className={`japc-badge ${status}`}>{STATUS_LABEL[status]}</span>
       </label>
-      <input
-        className={`japc-input ${status === 'missing-required' ? 'missing-required' : ''}`}
-        value={field.userValue ?? ''}
-        placeholder={field.proposal?.missingQuestion ?? ''}
-        onChange={(e) => onChange(field.fieldId, e.target.value)}
-      />
+      {field.options?.length ? (
+        <select
+          className={`japc-input ${status === 'missing-required' ? 'missing-required' : ''}`}
+          value={field.userValue ?? ''}
+          onChange={(e) => onChange(field.fieldId, e.target.value)}
+        >
+          <option value="">Selecione…</option>
+          {field.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          className={`japc-input ${status === 'missing-required' ? 'missing-required' : ''}`}
+          value={field.userValue ?? ''}
+          placeholder={field.proposal?.missingQuestion ?? ''}
+          onChange={(e) => onChange(field.fieldId, e.target.value)}
+        />
+      )}
       {field.charLimit ? (
         <span className="japc-hint">
           {(field.userValue ?? '').length}/{field.charLimit.max} caracteres
