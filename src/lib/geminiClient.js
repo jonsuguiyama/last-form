@@ -15,44 +15,12 @@ class GeminiError extends Error {
   }
 }
 
-async function readSseText(response, onChunk) {
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let fullText = ''
-
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-
-    for (const line of lines) {
-      if (!line.startsWith('data:')) continue
-      const jsonText = line.slice(5).trim()
-      if (!jsonText) continue
-
-      const chunk = JSON.parse(jsonText)
-      const parts = chunk.candidates?.[0]?.content?.parts ?? []
-      for (const part of parts) {
-        if (part.thought || !part.text) continue
-        fullText += part.text
-        onChunk?.({ type: 'stream', charsReceived: fullText.length })
-      }
-    }
-  }
-
-  return fullText
-}
-
-async function callGemini({ apiKey, model = DEFAULT_MODEL, contents, responseSchema, systemInstruction, onChunk }) {
+async function callGemini({ apiKey, model = DEFAULT_MODEL, contents, responseSchema, systemInstruction }) {
   if (!apiKey) {
     throw new GeminiError('Nenhuma API key do Gemini configurada. Adicione uma na tela de Opções.')
   }
 
-  const response = await fetch(`${API_BASE}/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`, {
+  const response = await fetch(`${API_BASE}/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -72,7 +40,13 @@ async function callGemini({ apiKey, model = DEFAULT_MODEL, contents, responseSch
     throw new GeminiError(`Gemini respondeu ${response.status}`, { status: response.status, cause: body })
   }
 
-  const text = await readSseText(response, onChunk)
+  const data = await response.json()
+  const parts = data.candidates?.[0]?.content?.parts ?? []
+  const text = parts
+    .filter((part) => !part.thought && part.text)
+    .map((part) => part.text)
+    .join('')
+
   if (!text) {
     throw new GeminiError('Resposta do Gemini veio sem conteúdo utilizável.')
   }
@@ -104,10 +78,9 @@ const FIELD_MAPPING_SCHEMA = {
   required: ['mappings'],
 }
 
-async function mapFields({ apiKey, profile, fields, jobDescription, extraContext, onProgress }) {
+async function mapFields({ apiKey, profile, fields, jobDescription, extraContext }) {
   const result = await callGemini({
     apiKey,
-    onChunk: onProgress,
     responseSchema: FIELD_MAPPING_SCHEMA,
     systemInstruction:
       'Você recebe o perfil profissional de um candidato e uma lista de campos de um formulário de ' +
@@ -143,10 +116,9 @@ const ADAPT_TEXT_SCHEMA = {
   required: ['adaptedText'],
 }
 
-async function adaptText({ apiKey, sourceText, maxLength, jobDescription, onProgress }) {
+async function adaptText({ apiKey, sourceText, maxLength, jobDescription }) {
   const result = await callGemini({
     apiKey,
-    onChunk: onProgress,
     responseSchema: ADAPT_TEXT_SCHEMA,
     systemInstruction:
       `Reescreva o texto do usuário para ter no máximo ${maxLength} caracteres, mantendo só o essencial ` +
@@ -226,10 +198,9 @@ const RESUME_SCHEMA = {
   },
 }
 
-async function parseResume({ apiKey, resumeText, onProgress }) {
+async function parseResume({ apiKey, resumeText }) {
   return callGemini({
     apiKey,
-    onChunk: onProgress,
     responseSchema: RESUME_SCHEMA,
     systemInstruction:
       'Extraia os dados estruturados deste currículo (texto puro, extraído de um PDF - a ordem das ' +

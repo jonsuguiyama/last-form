@@ -120,12 +120,10 @@ function OptionsApp() {
         MESSAGE_TYPES.PARSE_RESUME,
         { resumeText },
         {
-          resultTimeoutMs: 30000,
+          resultTimeoutMs: 45000,
           onProgress: (progress) => {
             if (progress.type === 'queue') {
               setStatus(`⏳ Na fila do Gemini (posição ${progress.position} de ${progress.total})…`)
-            } else if (progress.type === 'stream') {
-              setStatus(`⏳ Recebendo resposta do Gemini… (${progress.charsReceived} caracteres)`)
             }
           },
         },
