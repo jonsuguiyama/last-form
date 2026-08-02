@@ -43,6 +43,14 @@ const STATUS_LABEL = {
   'missing-optional': 'sem dado',
 }
 
+const IS_GROUP_FIELD = new Set(['radio-group', 'button-group'])
+
+function fieldDisplayLabel(field) {
+  if (field.label) return field.label
+  if (!IS_GROUP_FIELD.has(field.tag) && field.name) return field.name
+  return 'Pergunta não identificada'
+}
+
 function FieldRow({ field, onChange, onToggleSaveAnswer }) {
   const status = fieldStatus(field)
   const wasUnknown = field.proposal?.value == null
@@ -50,7 +58,7 @@ function FieldRow({ field, onChange, onToggleSaveAnswer }) {
   return (
     <div className="japc-field">
       <label className="japc-label">
-        {field.label ?? field.name ?? 'Campo sem nome'}
+        {fieldDisplayLabel(field)}
         <span className={`japc-badge ${status}`}>{STATUS_LABEL[status]}</span>
       </label>
       {field.options?.length ? (
