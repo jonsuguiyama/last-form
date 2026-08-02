@@ -35,9 +35,10 @@ async function readSseText(response, onChunk) {
       if (!jsonText) continue
 
       const chunk = JSON.parse(jsonText)
-      const chunkText = chunk.candidates?.[0]?.content?.parts?.[0]?.text
-      if (chunkText) {
-        fullText += chunkText
+      const parts = chunk.candidates?.[0]?.content?.parts ?? []
+      for (const part of parts) {
+        if (part.thought || !part.text) continue
+        fullText += part.text
         onChunk?.({ type: 'stream', charsReceived: fullText.length })
       }
     }
