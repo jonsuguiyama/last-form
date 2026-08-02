@@ -36,6 +36,7 @@ describe('sendMessage', () => {
     vi.useFakeTimers()
     globalThis.chrome = {
       runtime: {
+        id: 'test-extension-id',
         connect: vi.fn(() => {
           const listeners = []
           return {
@@ -55,5 +56,23 @@ describe('sendMessage', () => {
 
     await vi.advanceTimersByTimeAsync(1000)
     await assertion
+  })
+
+  it('rejects with a clear message when the extension context was invalidated (reload/update)', async () => {
+    globalThis.chrome = { runtime: { id: undefined, connect: vi.fn() } }
+    await expect(sendMessage(MESSAGE_TYPES.GET_PROFILE)).rejects.toThrow(/recarregada ou atualizada/)
+    expect(globalThis.chrome.runtime.connect).not.toHaveBeenCalled()
+  })
+
+  it('rejects with a clear message when connect() throws because the context died mid-call', async () => {
+    globalThis.chrome = {
+      runtime: {
+        id: 'test-extension-id',
+        connect: vi.fn(() => {
+          throw new Error('Extension context invalidated.')
+        }),
+      },
+    }
+    await expect(sendMessage(MESSAGE_TYPES.GET_PROFILE)).rejects.toThrow(/recarregada ou atualizada/)
   })
 })

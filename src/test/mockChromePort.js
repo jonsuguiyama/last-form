@@ -3,6 +3,7 @@ import { vi } from 'vitest'
 function mockChromePort(handlers) {
   globalThis.chrome = {
     runtime: {
+      id: 'test-extension-id',
       connect: vi.fn(() => {
         const messageListeners = []
 
@@ -35,6 +36,7 @@ function mockChromePort(handlers) {
 function mockChromePortThatNeverResponds() {
   globalThis.chrome = {
     runtime: {
+      id: 'test-extension-id',
       connect: vi.fn(() => ({
         onMessage: { addListener: () => {} },
         onDisconnect: { addListener: () => {} },
