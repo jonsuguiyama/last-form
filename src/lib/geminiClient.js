@@ -88,7 +88,11 @@ async function mapFields({ apiKey, profile, fields, jobDescription, extraContext
       'missingQuestion (a pergunta em si, reescrita de forma clara) se o perfil não tiver esse dado. ' +
       'confidence vai de 0 a 1. Se houver descrição da vaga, priorize o que for mais relevante pra ela ' +
       'ao escolher entre informações equivalentes do perfil. Se houver extraContext, siga-o estritamente ' +
-      '(ex: restringir a resposta a uma entrada específica do perfil).',
+      '(ex: restringir a resposta a uma entrada específica do perfil). Se o idioma do formulário ' +
+      '(pelos labels dos campos) for diferente do idioma em que o perfil está escrito, traduza texto ' +
+      'livre (descrições, resumos, respostas abertas) para o idioma do formulário - isso é tradução, ' +
+      'não invenção, e é esperado. NÃO traduza nomes próprios, nomes de empresas/instituições, emails, ' +
+      'links/URLs ou datas - esses ficam como estão no perfil.',
     contents: [
       {
         role: 'user',
