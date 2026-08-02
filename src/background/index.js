@@ -32,7 +32,7 @@ async function handleMapFields({ fields, jobDescription, extraContext }, onProgr
 
   const llmMappings = remaining.length
     ? await enqueueGeminiCall(
-        () => mapFields({ apiKey, profile, fields: remaining, jobDescription, extraContext, onProgress }),
+        () => mapFields({ apiKey, profile, fields: remaining, jobDescription, extraContext }),
         queueProgress(onProgress),
       )
     : []
@@ -43,14 +43,14 @@ async function handleMapFields({ fields, jobDescription, extraContext }, onProgr
 async function handleAdaptText({ sourceText, maxLength, jobDescription }, onProgress) {
   const apiKey = await getApiKey()
   return enqueueGeminiCall(
-    () => adaptText({ apiKey, sourceText, maxLength, jobDescription, onProgress }),
+    () => adaptText({ apiKey, sourceText, maxLength, jobDescription }),
     queueProgress(onProgress),
   )
 }
 
 async function handleParseResume({ resumeText }, onProgress) {
   const apiKey = await getApiKey()
-  return enqueueGeminiCall(() => parseResume({ apiKey, resumeText, onProgress }), queueProgress(onProgress))
+  return enqueueGeminiCall(() => parseResume({ apiKey, resumeText }), queueProgress(onProgress))
 }
 
 const handlers = {
