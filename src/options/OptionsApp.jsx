@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { sendMessage, MESSAGE_TYPES } from '../lib/messaging'
 import { normalizeProfile } from '../lib/profileSchema'
 import { extractPdfText } from './pdfText'
@@ -25,6 +25,7 @@ function hasProfileData(profile) {
 }
 
 function OptionsApp() {
+  const fileInputRef = useRef(null)
   const [profile, setProfile] = useState(normalizeProfile())
   const [keyMode, setKeyMode] = useState('editing')
   const [apiKey, setApiKey] = useState('')
@@ -251,8 +252,23 @@ function OptionsApp() {
           <h2 style={styles.h2}>Currículo</h2>
           <p style={styles.hint}>Suba o PDF uma vez: os dados extraídos populam as seções abaixo, editáveis.</p>
           <div style={styles.row}>
-            <input type="file" accept="application/pdf" onChange={onResumeSelected} disabled={extracting} />
-            {resumeFileName ? <span style={styles.hint}>{resumeFileName}</span> : null}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              onChange={onResumeSelected}
+              disabled={extracting}
+              style={{ display: 'none' }}
+            />
+            <button
+              type="button"
+              style={styles.buttonSecondary}
+              disabled={extracting}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              Escolher arquivo
+            </button>
+            <span style={styles.hint}>{resumeFileName || 'Nenhum arquivo escolhido'}</span>
           </div>
           {status ? <p style={styles.processing}>{status}</p> : null}
           {resumeError ? <p style={styles.warning}>⚠ Erro ao extrair o currículo: {resumeError}</p> : null}
