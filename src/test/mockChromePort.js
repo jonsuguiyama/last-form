@@ -1,11 +1,5 @@
 import { vi } from 'vitest'
 
-/**
- * Simula o lado do background pra chrome.runtime.connect: cada handler em
- * `handlers` roda quando chega uma mensagem daquele tipo, respondendo com o
- * mesmo protocolo ack/result/error implementado em src/background/index.js.
- * Cada chamada a connect() abre uma "porta" independente, igual no Chrome de verdade.
- */
 function mockChromePort(handlers) {
   globalThis.chrome = {
     runtime: {
@@ -38,7 +32,6 @@ function mockChromePort(handlers) {
   }
 }
 
-/** Porta que nunca responde nada - simula um service worker travado/dormindo. */
 function mockChromePortThatNeverResponds() {
   globalThis.chrome = {
     runtime: {

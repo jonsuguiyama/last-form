@@ -109,7 +109,6 @@ describe('OptionsApp - upload de currículo', () => {
     await user.upload(input, file)
 
     expect(await screen.findByText(/Erro ao extrair o currículo: Gemini respondeu 503/)).toBeInTheDocument()
-    // Must still be there after "extracting" flips back to false, not just appear momentarily.
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(screen.getByText(/Erro ao extrair o currículo: Gemini respondeu 503/)).toBeInTheDocument()
   })
