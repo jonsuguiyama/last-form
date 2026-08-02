@@ -1,3 +1,36 @@
+import { useEffect, useState } from 'react'
+import { subscribeToLog, getLogHistory } from '../lib/debugLog'
+
+function formatLogEntry(entry) {
+  const type = entry.type ? ` (${entry.type})` : ''
+  const detail = entry.detail ? `: ${entry.detail}` : ''
+  return `[${entry.time}] ${entry.label}${type}${detail}`
+}
+
+function DebugSection() {
+  const [entries, setEntries] = useState(getLogHistory)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => subscribeToLog((entry) => setEntries((prev) => [...prev, entry])), [])
+
+  return (
+    <div className="japc-debug">
+      <button type="button" className="japc-close" style={{ fontSize: 11 }} onClick={() => setOpen((prev) => !prev)}>
+        {open ? 'Esconder diagnóstico' : `Diagnóstico (${entries.length})`}
+      </button>
+      {open ? (
+        <div className="japc-debug-log">
+          {entries.length === 0 ? (
+            <span className="japc-hint">Nada registrado ainda.</span>
+          ) : (
+            entries.map((entry, index) => <div key={`${entry.time}-${index}`}>{formatLogEntry(entry)}</div>)
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function fieldStatus(field) {
   const filled = field.userValue != null && field.userValue !== ''
   if (filled) return 'ok'
@@ -71,7 +104,9 @@ function ReviewPanel({ fields, phase, blocked, onChangeField, onToggleSaveAnswer
       </div>
 
       <div className="japc-body">
-        {fields.length === 0 ? (
+        {phase === 'analyzing' ? (
+          <span className="japc-hint">⏳ Analisando a página…</span>
+        ) : fields.length === 0 ? (
           <span className="japc-hint">Nenhum campo de formulário encontrado nesta página.</span>
         ) : (
           fields.map((field) => (
@@ -103,6 +138,7 @@ function ReviewPanel({ fields, phase, blocked, onChangeField, onToggleSaveAnswer
           <span className="japc-note">Responda os campos obrigatórios em destaque antes de continuar.</span>
         ) : null}
         <span className="japc-note">Nada é enviado automaticamente. O botão final é sempre seu.</span>
+        <DebugSection />
       </div>
     </div>
   )
