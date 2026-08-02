@@ -78,6 +78,25 @@ describe('scanFields', () => {
     expect(fields[0].name).toBe('visible-field')
   })
 
+  it('still detects a radio group whose native inputs are display:none but wrapped in a visible custom-styled label', () => {
+    setBody(`
+      <fieldset>
+        <legend>Foi indicado?</legend>
+        <label><input type="radio" name="referred" value="no" style="display:none" /> Não</label>
+        <label><input type="radio" name="referred" value="yes" style="display:none" /> Sim</label>
+      </fieldset>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].tag).toBe('radio-group')
+    expect(fields[0].options).toEqual(['Não', 'Sim'])
+  })
+
+  it('still filters out a field with display:none and no visible label at all', () => {
+    setBody(`<input type="text" name="honeypot" style="display:none" />`)
+    expect(scanFields()).toHaveLength(0)
+  })
+
   it('assigns a stable fieldId that can be used to look the element back up', () => {
     setBody(`<input name="a" /><input name="b" />`)
     const fields = scanFields()

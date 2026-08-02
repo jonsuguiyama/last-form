@@ -25,6 +25,22 @@ function escapeAttributeValue(value) {
   return value.replace(/["\\]/g, String.raw`\$&`)
 }
 
+function hasVisibleLabel(el, root) {
+  const wrapping = el.closest('label')
+  if (wrapping && isVisible(wrapping)) return true
+  if (el.id) {
+    const forLabel = root.querySelector(`label[for="${escapeAttributeValue(el.id)}"]`)
+    if (forLabel && isVisible(forLabel)) return true
+  }
+  return false
+}
+
+function isInteractiveField(el, root) {
+  if (isVisible(el)) return true
+  if (el.type === 'radio' || el.type === 'checkbox') return hasVisibleLabel(el, root)
+  return false
+}
+
 function labelFromFor(el, root) {
   if (!el.id) return null
   const label = root.querySelector(`label[for="${escapeAttributeValue(el.id)}"]`)
@@ -217,7 +233,7 @@ function scanFields(root = document) {
     .filter((el) => !EXCLUDED_INPUT_TYPES.has(el.type))
     .filter((el) => !el.disabled)
     .filter((el) => el.dataset.japcFilled !== 'true')
-    .filter(isVisible)
+    .filter((el) => isInteractiveField(el, root))
 
   const radioGroups = new Map()
   const singles = []

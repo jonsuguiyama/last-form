@@ -33,6 +33,7 @@ const panelStyles = `
   }
   .japc-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
   .japc-field { display: flex; flex-direction: column; gap: 4px; }
+  .japc-field-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
   .japc-label { font-weight: 500; }
   .japc-badge {
     display: inline-block;

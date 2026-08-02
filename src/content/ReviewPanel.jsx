@@ -99,16 +99,27 @@ function FieldControl({ field, status, onChange }) {
   return <TextControl field={field} status={status} onChange={onChange} />
 }
 
-function FieldRow({ field, onChange, onToggleSaveAnswer }) {
+function FieldRow({ field, onChange, onToggleSaveAnswer, onDismiss }) {
   const status = fieldStatus(field)
   const wasUnknown = field.proposal?.value == null
 
   return (
     <div className="japc-field">
-      <label className="japc-label">
-        {fieldDisplayLabel(field)}
-        <span className={`japc-badge ${status}`}>{STATUS_LABEL[status]}</span>
-      </label>
+      <div className="japc-field-header">
+        <label className="japc-label">
+          {fieldDisplayLabel(field)}
+          <span className={`japc-badge ${status}`}>{STATUS_LABEL[status]}</span>
+        </label>
+        <button
+          type="button"
+          className="japc-close"
+          onClick={() => onDismiss(field.fieldId)}
+          aria-label="Remover este campo, não faz sentido pra mim"
+          title="Remover, não faz sentido pra mim"
+        >
+          ×
+        </button>
+      </div>
       <FieldControl field={field} status={status} onChange={onChange} />
       {field.charLimit ? (
         <span className="japc-hint">
@@ -129,7 +140,17 @@ function FieldRow({ field, onChange, onToggleSaveAnswer }) {
   )
 }
 
-function ReviewPanel({ fields, phase, blocked, onChangeField, onToggleSaveAnswer, onApply, onNextStep, onClose }) {
+function ReviewPanel({
+  fields,
+  phase,
+  blocked,
+  onChangeField,
+  onToggleSaveAnswer,
+  onDismissField,
+  onApply,
+  onNextStep,
+  onClose,
+}) {
   return (
     <div className="japc-panel">
       <div className="japc-header">
@@ -146,7 +167,13 @@ function ReviewPanel({ fields, phase, blocked, onChangeField, onToggleSaveAnswer
           <span className="japc-hint">Nenhum campo de formulário encontrado nesta página.</span>
         ) : (
           fields.map((field) => (
-            <FieldRow key={field.fieldId} field={field} onChange={onChangeField} onToggleSaveAnswer={onToggleSaveAnswer} />
+            <FieldRow
+              key={field.fieldId}
+              field={field}
+              onChange={onChangeField}
+              onToggleSaveAnswer={onToggleSaveAnswer}
+              onDismiss={onDismissField}
+            />
           ))
         )}
       </div>

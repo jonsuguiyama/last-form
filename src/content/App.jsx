@@ -68,6 +68,10 @@ function App() {
     setFields((prev) => prev.map((f) => (f.fieldId === fieldId ? { ...f, saveAsAnswer: checked } : f)))
   }, [])
 
+  const onDismissField = useCallback((fieldId) => {
+    setFields((prev) => prev.filter((f) => f.fieldId !== fieldId))
+  }, [])
+
   const blocked = hasBlockingRequiredField(fields)
 
   const onApply = useCallback(async () => {
@@ -139,6 +143,7 @@ function App() {
       blocked={blocked}
       onChangeField={onChangeField}
       onToggleSaveAnswer={onToggleSaveAnswer}
+      onDismissField={onDismissField}
       onApply={onApply}
       onNextStep={onNextStep}
       onClose={() => setPhase('idle')}
