@@ -68,6 +68,19 @@ const panelStyles = `
   .japc-button.primary:disabled { background: #ccc; cursor: not-allowed; }
   .japc-button.secondary { background: #f2f2f2; color: #1a1a1a; }
   .japc-note { font-size: 11px; color: #888; text-align: center; }
+  .japc-debug { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .japc-debug-log {
+    width: 100%;
+    max-height: 160px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 10px;
+    background: #fafafa;
+    padding: 8px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    box-sizing: border-box;
+  }
   .japc-launcher {
     position: fixed;
     bottom: 16px;
