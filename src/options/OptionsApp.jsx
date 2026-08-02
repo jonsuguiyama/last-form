@@ -26,8 +26,6 @@ function hasProfileData(profile) {
 
 function OptionsApp() {
   const [profile, setProfile] = useState(normalizeProfile())
-  // 'editing': empty input to type a new key. 'locked': key already saved and
-  // verified, shown as a fixed status - never as a pre-filled field.
   const [keyMode, setKeyMode] = useState('editing')
   const [apiKey, setApiKey] = useState('')
   const [apiKeyVerified, setApiKeyVerified] = useState(false)
@@ -57,16 +55,13 @@ function OptionsApp() {
       const keyToUse = loadedKey || devKey
       if (keyToUse) {
         if (!loadedKey) {
-          // The dev prefill only counts if it's actually persisted - otherwise
-          // the screen shows a "ready" key the background can't see.
           await sendMessage(MESSAGE_TYPES.SAVE_API_KEY, devKey)
         }
         try {
           await sendMessage(MESSAGE_TYPES.VERIFY_API_KEY, keyToUse)
           setApiKeyVerified(true)
-          setKeyMode('locked') // never show the masked field for an already-verified key
+          setKeyMode('locked')
         } catch {
-          // Saved key stopped working: needs to show up editable so it can be fixed.
           setApiKeyVerified(false)
           setApiKey(keyToUse)
           setKeyMode('editing')
@@ -108,7 +103,6 @@ function OptionsApp() {
 
   const onResumeSelected = async (event) => {
     const file = event.target.files?.[0]
-    // Reset now: without it, re-picking the same file never fires onChange again.
     event.target.value = ''
     if (!file) return
 
