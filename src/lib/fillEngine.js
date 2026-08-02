@@ -1,4 +1,5 @@
 import { clickAndWait } from './domWait'
+import { findLabel } from './domScanner'
 
 function setNativeValue(el, value) {
   const prototype = Object.getPrototypeOf(el)
@@ -42,4 +43,29 @@ async function addRepeatableEntries(addButtonEl, count, { scopeEl = document.bod
   }
 }
 
-export { setNativeValue, fillField, addRepeatableEntries }
+function fillRadioGroup(radios, value, root = document) {
+  if (value == null || radios.length === 0) return false
+  const target = String(value).trim().toLowerCase()
+
+  const match =
+    radios.find((el) => findLabel(el, root)?.trim().toLowerCase() === target) ??
+    radios.find((el) => findLabel(el, root)?.trim().toLowerCase().includes(target))
+
+  if (!match) return false
+  if (!match.checked) match.click()
+  return true
+}
+
+function fillButtonGroup(buttons, value) {
+  if (value == null || buttons.length === 0) return false
+  const target = String(value).trim().toLowerCase()
+  const textOf = (el) => (el.textContent || el.getAttribute('aria-label') || '').trim().toLowerCase()
+
+  const match = buttons.find((el) => textOf(el) === target) ?? buttons.find((el) => textOf(el).includes(target))
+
+  if (!match) return false
+  match.click()
+  return true
+}
+
+export { setNativeValue, fillField, addRepeatableEntries, fillRadioGroup, fillButtonGroup }

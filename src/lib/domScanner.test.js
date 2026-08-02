@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { scanFields } from './domScanner'
+import { scanFields, getFieldElement, getFieldElements } from './domScanner'
 
 function setBody(html) {
   document.body.innerHTML = html
@@ -93,5 +93,98 @@ describe('scanFields', () => {
     `)
     const [field] = scanFields()
     expect(field.section).toBe('Experiência 1')
+  })
+
+  it('collapses a radio group sharing the same name into a single field with options', () => {
+    setBody(`
+      <fieldset>
+        <legend>Qual a sua forma de contratação?</legend>
+        <label><input type="radio" name="contract" value="clt" /> CLT</label>
+        <label><input type="radio" name="contract" value="pj" /> PJ</label>
+      </fieldset>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].tag).toBe('radio-group')
+    expect(fields[0].label).toBe('Qual a sua forma de contratação?')
+    expect(fields[0].options).toEqual(['CLT', 'PJ'])
+  })
+
+  it('gives every radio in a group the same fieldId, resolvable via getFieldElements', () => {
+    setBody(`
+      <label><input type="radio" name="wfh" value="yes" /> Sim</label>
+      <label><input type="radio" name="wfh" value="no" /> Não</label>
+    `)
+    const [field] = scanFields()
+    const elements = getFieldElements(field.fieldId)
+    expect(elements).toHaveLength(2)
+    expect(getFieldElement(field.fieldId)).toBe(elements[0])
+  })
+
+  it('does not group radios with different names, and treats an unnamed radio as its own field', () => {
+    setBody(`
+      <input type="radio" name="a" value="1" />
+      <input type="radio" name="b" value="1" />
+      <input type="radio" value="1" />
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(3)
+    expect(new Set(fields.map((f) => f.fieldId)).size).toBe(3)
+  })
+
+  it('groups sibling <button> elements inside a form into a single choice field', () => {
+    setBody(`
+      <form>
+        <p>Trabalho remoto disponível?</p>
+        <div>
+          <button type="button">Sim</button>
+          <button type="button">Não</button>
+        </div>
+      </form>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].tag).toBe('button-group')
+    expect(fields[0].label).toBe('Trabalho remoto disponível?')
+    expect(fields[0].options).toEqual(['Sim', 'Não'])
+  })
+
+  it('does not treat button groups outside a <form> as a choice field', () => {
+    setBody(`
+      <div>
+        <button type="button">Sim</button>
+        <button type="button">Não</button>
+      </div>
+    `)
+    expect(scanFields()).toHaveLength(0)
+  })
+
+  it('excludes buttons that already look like navigation/submit/add buttons from choice-group detection', () => {
+    setBody(`
+      <form>
+        <div>
+          <button type="button">Voltar</button>
+          <button type="button">Próximo</button>
+        </div>
+      </form>
+    `)
+    expect(scanFields()).toHaveLength(0)
+  })
+
+  it('ignores a button pair with more than the max expected choice-group size', () => {
+    setBody(`
+      <form>
+        <div>
+          <button type="button">A</button>
+          <button type="button">B</button>
+          <button type="button">C</button>
+          <button type="button">D</button>
+          <button type="button">E</button>
+          <button type="button">F</button>
+          <button type="button">G</button>
+        </div>
+      </form>
+    `)
+    expect(scanFields()).toHaveLength(0)
   })
 })

@@ -31,4 +31,4 @@ function looksLikeSubmitButton(el) {
   return SUBMIT_PATTERN.test(textOf(el))
 }
 
-export { findNextStepButton, looksLikeSubmitButton }
+export { findNextStepButton, looksLikeSubmitButton, NEXT_STEP_PATTERN, BACK_STEP_PATTERN, SUBMIT_PATTERN }
