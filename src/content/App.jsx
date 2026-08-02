@@ -23,6 +23,9 @@ async function persistSavedAnswers(fields) {
 }
 
 function withUserValue(field) {
+  if (field.type === 'checkbox') {
+    return { ...field, userValue: field.proposal?.value === true || field.proposal?.value === 'true' }
+  }
   return { ...field, userValue: field.proposal?.value ?? '' }
 }
 

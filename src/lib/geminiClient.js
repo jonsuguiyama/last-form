@@ -92,7 +92,13 @@ async function mapFields({ apiKey, profile, fields, jobDescription, extraContext
       '(pelos labels dos campos) for diferente do idioma em que o perfil está escrito, traduza texto ' +
       'livre (descrições, resumos, respostas abertas) para o idioma do formulário - isso é tradução, ' +
       'não invenção, e é esperado. NÃO traduza nomes próprios, nomes de empresas/instituições, emails, ' +
-      'links/URLs ou datas - esses ficam como estão no perfil.',
+      'links/URLs ou datas - esses ficam como estão no perfil. Para campos com type "checkbox" ' +
+      '(geralmente um checkbox por opção, ex: "Inglês Básico", "Inglês Avançado", "Espanhol Intermediário" ' +
+      'como checkboxes separados de um mesmo grupo de nível de idioma), o value deve ser sempre a string ' +
+      '"true" ou "false", nunca null: "true" se o label desse checkbox especificamente corresponde ao que ' +
+      'está no perfil (ex: o perfil diz "Inglês - Avançado", então marque true só o checkbox "Inglês ' +
+      'Avançado", e false os outros níveis de inglês), "false" caso contrário. Marcar false não é inventar ' +
+      'dado, é a resposta correta para uma opção que não se aplica.',
     contents: [
       {
         role: 'user',

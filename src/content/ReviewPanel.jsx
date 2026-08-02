@@ -32,6 +32,7 @@ function DebugSection() {
 }
 
 function fieldStatus(field) {
+  if (field.type === 'checkbox') return 'ok'
   const filled = field.userValue != null && field.userValue !== ''
   if (filled) return 'ok'
   return field.required ? 'missing-required' : 'missing-optional'
@@ -51,6 +52,53 @@ function fieldDisplayLabel(field) {
   return 'Pergunta não identificada'
 }
 
+function CheckboxControl({ field, onChange }) {
+  return (
+    <label className="japc-checkbox-row">
+      <input
+        type="checkbox"
+        checked={field.userValue === true}
+        onChange={(e) => onChange(field.fieldId, e.target.checked)}
+      />
+      {field.userValue === true ? 'Marcado' : 'Não marcado'}
+    </label>
+  )
+}
+
+function SelectControl({ field, status, onChange }) {
+  return (
+    <select
+      className={`japc-input ${status === 'missing-required' ? 'missing-required' : ''}`}
+      value={field.userValue ?? ''}
+      onChange={(e) => onChange(field.fieldId, e.target.value)}
+    >
+      <option value="">Selecione…</option>
+      {field.options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function TextControl({ field, status, onChange }) {
+  return (
+    <input
+      className={`japc-input ${status === 'missing-required' ? 'missing-required' : ''}`}
+      value={field.userValue ?? ''}
+      placeholder={field.proposal?.missingQuestion ?? ''}
+      onChange={(e) => onChange(field.fieldId, e.target.value)}
+    />
+  )
+}
+
+function FieldControl({ field, status, onChange }) {
+  if (field.type === 'checkbox') return <CheckboxControl field={field} onChange={onChange} />
+  if (field.options?.length) return <SelectControl field={field} status={status} onChange={onChange} />
+  return <TextControl field={field} status={status} onChange={onChange} />
+}
+
 function FieldRow({ field, onChange, onToggleSaveAnswer }) {
   const status = fieldStatus(field)
   const wasUnknown = field.proposal?.value == null
@@ -61,27 +109,7 @@ function FieldRow({ field, onChange, onToggleSaveAnswer }) {
         {fieldDisplayLabel(field)}
         <span className={`japc-badge ${status}`}>{STATUS_LABEL[status]}</span>
       </label>
-      {field.options?.length ? (
-        <select
-          className={`japc-input ${status === 'missing-required' ? 'missing-required' : ''}`}
-          value={field.userValue ?? ''}
-          onChange={(e) => onChange(field.fieldId, e.target.value)}
-        >
-          <option value="">Selecione…</option>
-          {field.options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input
-          className={`japc-input ${status === 'missing-required' ? 'missing-required' : ''}`}
-          value={field.userValue ?? ''}
-          placeholder={field.proposal?.missingQuestion ?? ''}
-          onChange={(e) => onChange(field.fieldId, e.target.value)}
-        />
-      )}
+      <FieldControl field={field} status={status} onChange={onChange} />
       {field.charLimit ? (
         <span className="japc-hint">
           {(field.userValue ?? '').length}/{field.charLimit.max} caracteres
