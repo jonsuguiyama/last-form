@@ -82,8 +82,8 @@ function findLabel(el, root) {
     labelFromFor(el, root) ||
     labelFromWrapping(el) ||
     labelFromAria(el) ||
-    el.getAttribute('placeholder')?.trim() ||
     labelFromNearbyText(el) ||
+    el.getAttribute('placeholder')?.trim() ||
     null
   )
 }
