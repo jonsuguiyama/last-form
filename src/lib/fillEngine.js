@@ -68,4 +68,16 @@ function fillButtonGroup(buttons, value) {
   return true
 }
 
-export { setNativeValue, fillField, addRepeatableEntries, fillRadioGroup, fillButtonGroup }
+function fillCheckboxGroup(checkboxes, value, root = document) {
+  if (!Array.isArray(value) || checkboxes.length === 0) return false
+  const wanted = new Set(value.map((v) => String(v).trim().toLowerCase()))
+
+  checkboxes.forEach((el) => {
+    const label = findLabel(el, root)?.trim().toLowerCase()
+    const shouldCheck = label != null && wanted.has(label)
+    if (el.checked !== shouldCheck) el.click()
+  })
+  return true
+}
+
+export { setNativeValue, fillField, addRepeatableEntries, fillRadioGroup, fillButtonGroup, fillCheckboxGroup }

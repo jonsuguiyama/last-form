@@ -66,6 +66,52 @@ describe('scanFields', () => {
     expect(fields[0].name).toBe('salary')
   })
 
+  it('groups a multi-select checkbox question into one checkbox-group field (bare checkboxes)', () => {
+    setBody(`
+      <div>
+        <p>Quais linguagens de programação você possui conhecimento?</p>
+        <div>
+          <input type="checkbox" id="lang-node" /><label for="lang-node">Node</label>
+          <input type="checkbox" id="lang-react" /><label for="lang-react">React</label>
+          <input type="checkbox" id="lang-php" /><label for="lang-php">PHP</label>
+        </div>
+      </div>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].tag).toBe('checkbox-group')
+    expect(fields[0].label).toBe('Quais linguagens de programação você possui conhecimento?')
+    expect(fields[0].options).toEqual(['Node', 'React', 'PHP'])
+  })
+
+  it('groups a multi-select checkbox question when each option wraps its own checkbox in a <label>', () => {
+    setBody(`
+      <div>
+        <p>Quais linguagens de programação você possui conhecimento?</p>
+        <div>
+          <label><input type="checkbox" /> Node</label>
+          <label><input type="checkbox" /> React</label>
+          <label><input type="checkbox" /> Ruby on Rails</label>
+          <label><input type="checkbox" /> PHP</label>
+          <label><input type="checkbox" /> Python</label>
+          <label><input type="checkbox" /> Outras</label>
+        </div>
+      </div>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].tag).toBe('checkbox-group')
+    expect(fields[0].options).toEqual(['Node', 'React', 'Ruby on Rails', 'PHP', 'Python', 'Outras'])
+  })
+
+  it('does not group a single standalone checkbox (e.g. accept terms)', () => {
+    setBody(`<label><input type="checkbox" /> Eu concordo com os termos</label>`)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].tag).not.toBe('checkbox-group')
+    expect(fields[0].type).toBe('checkbox')
+  })
+
   it('reads maxlength attribute as char limit', () => {
     setBody(`<textarea name="bio" maxlength="400"></textarea>`)
     const [field] = scanFields()

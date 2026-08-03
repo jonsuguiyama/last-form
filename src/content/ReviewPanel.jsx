@@ -31,10 +31,14 @@ function DebugSection() {
   )
 }
 
+function hasValue(userValue) {
+  if (Array.isArray(userValue)) return userValue.length > 0
+  return userValue != null && userValue !== ''
+}
+
 function fieldStatus(field) {
   if (field.type === 'checkbox') return 'ok'
-  const filled = field.userValue != null && field.userValue !== ''
-  if (filled) return 'ok'
+  if (hasValue(field.userValue)) return 'ok'
   return field.required ? 'missing-required' : 'missing-optional'
 }
 
@@ -44,7 +48,7 @@ const STATUS_LABEL = {
   'missing-optional': 'sem dado',
 }
 
-const IS_GROUP_FIELD = new Set(['radio-group', 'button-group'])
+const IS_GROUP_FIELD = new Set(['radio-group', 'button-group', 'checkbox-group'])
 
 function fieldDisplayLabel(field) {
   if (field.label) return field.label
@@ -62,6 +66,28 @@ function CheckboxControl({ field, onChange }) {
       />
       {field.userValue === true ? 'Marcado' : 'Não marcado'}
     </label>
+  )
+}
+
+function CheckboxGroupControl({ field, onChange }) {
+  const selected = new Set(field.userValue ?? [])
+
+  const toggle = (option) => {
+    const next = new Set(selected)
+    if (next.has(option)) next.delete(option)
+    else next.add(option)
+    onChange(field.fieldId, Array.from(next))
+  }
+
+  return (
+    <div className="japc-checkbox-group">
+      {field.options.map((option) => (
+        <label key={option} className="japc-checkbox-row">
+          <input type="checkbox" checked={selected.has(option)} onChange={() => toggle(option)} />
+          {option}
+        </label>
+      ))}
+    </div>
   )
 }
 
@@ -95,6 +121,7 @@ function TextControl({ field, status, onChange }) {
 
 function FieldControl({ field, status, onChange }) {
   if (field.type === 'checkbox') return <CheckboxControl field={field} onChange={onChange} />
+  if (field.type === 'checkbox-group') return <CheckboxGroupControl field={field} onChange={onChange} />
   if (field.options?.length) return <SelectControl field={field} status={status} onChange={onChange} />
   return <TextControl field={field} status={status} onChange={onChange} />
 }

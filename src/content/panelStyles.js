@@ -56,6 +56,8 @@ const panelStyles = `
   .japc-input.missing-required { border-color: #c81e1e; }
   .japc-hint { color: #888; font-size: 11px; }
   .japc-checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #555; }
+  .japc-checkbox-group { display: flex; flex-direction: column; gap: 6px; }
+  .japc-checkbox-group .japc-checkbox-row { font-size: 13px; color: #1a1a1a; }
   .japc-footer { padding: 12px 16px; border-top: 1px solid #eee; display: flex; flex-direction: column; gap: 8px; }
   .japc-button {
     padding: 8px 12px;

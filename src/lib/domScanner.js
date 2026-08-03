@@ -8,6 +8,8 @@ const EXCLUDED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'im
 const KNOWN_PURPOSE_PATTERNS = [NEXT_STEP_PATTERN, BACK_STEP_PATTERN, SUBMIT_PATTERN, ADD_BUTTON_PATTERN]
 const MIN_BUTTON_GROUP_SIZE = 2
 const MAX_BUTTON_GROUP_SIZE = 6
+const MIN_CHECKBOX_GROUP_SIZE = 2
+const MAX_CHECKBOX_GROUP_SIZE = 15
 
 let nextFieldId = 0
 
@@ -224,6 +226,48 @@ function buildButtonGroupDescriptor(parent, buttons) {
   }
 }
 
+function checkboxGroupContainer(el) {
+  const semantic = el.closest('fieldset, section, [role="group"], ul, ol')
+  if (semantic) return semantic
+
+  const parent = el.parentElement
+  if (parent?.tagName.toLowerCase() === 'label') return parent.parentElement ?? parent
+  return parent
+}
+
+function findCheckboxGroups(checkboxes) {
+  const byContainer = new Map()
+  for (const el of checkboxes) {
+    const container = checkboxGroupContainer(el)
+    if (!byContainer.has(container)) byContainer.set(container, [])
+    byContainer.get(container).push(el)
+  }
+
+  return [...byContainer.entries()]
+    .filter(([, boxes]) => boxes.length >= MIN_CHECKBOX_GROUP_SIZE && boxes.length <= MAX_CHECKBOX_GROUP_SIZE)
+    .map(([container, boxes]) => ({ container, boxes }))
+}
+
+function buildCheckboxGroupDescriptor(container, boxes, root) {
+  const groupId = String(nextFieldId++)
+  boxes.forEach((el) => {
+    el.dataset.japcFieldId = groupId
+  })
+
+  return {
+    fieldId: groupId,
+    tag: 'checkbox-group',
+    type: 'checkbox-group',
+    label: findButtonGroupQuestion(container) ?? findSection(boxes[0]),
+    name: null,
+    id: null,
+    required: boxes.some(isRequired),
+    charLimit: null,
+    section: findSection(boxes[0]),
+    options: boxes.map((el) => findLabel(el, root)).filter(Boolean),
+  }
+}
+
 const DIALOG_SELECTOR = '[role="dialog"], [aria-modal="true"]'
 
 function resolveScanRoot(root) {
@@ -245,16 +289,23 @@ function scanFields(root = document) {
     .filter((el) => isInteractiveField(el, scanRoot))
 
   const radioGroups = new Map()
+  const checkboxCandidates = []
   const singles = []
 
   for (const el of elements) {
     if (el.type === 'radio' && el.name) {
       if (!radioGroups.has(el.name)) radioGroups.set(el.name, [])
       radioGroups.get(el.name).push(el)
+    } else if (el.type === 'checkbox') {
+      checkboxCandidates.push(el)
     } else {
       singles.push(el)
     }
   }
+
+  const checkboxGroups = findCheckboxGroups(checkboxCandidates)
+  const groupedCheckboxes = new Set(checkboxGroups.flatMap(({ boxes }) => boxes))
+  const ungroupedCheckboxes = checkboxCandidates.filter((el) => !groupedCheckboxes.has(el))
 
   const radioGroupDescriptors = [...radioGroups.values()].map((radios) =>
     buildRadioGroupDescriptor(radios, scanRoot),
@@ -262,9 +313,12 @@ function scanFields(root = document) {
   const buttonGroupDescriptors = findButtonChoiceGroups(scanRoot).map(({ parent, buttons }) =>
     buildButtonGroupDescriptor(parent, buttons),
   )
-  const singleDescriptors = singles.map((el) => buildFieldDescriptor(el, scanRoot))
+  const checkboxGroupDescriptors = checkboxGroups.map(({ container, boxes }) =>
+    buildCheckboxGroupDescriptor(container, boxes, scanRoot),
+  )
+  const singleDescriptors = [...singles, ...ungroupedCheckboxes].map((el) => buildFieldDescriptor(el, scanRoot))
 
-  return [...radioGroupDescriptors, ...buttonGroupDescriptors, ...singleDescriptors]
+  return [...radioGroupDescriptors, ...buttonGroupDescriptors, ...checkboxGroupDescriptors, ...singleDescriptors]
 }
 
 function getFieldElement(fieldId, root = document) {

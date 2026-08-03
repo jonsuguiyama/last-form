@@ -1,5 +1,5 @@
 import { scanFields, getFieldElement, getFieldElements } from '../lib/domScanner'
-import { fillField, fillRadioGroup, fillButtonGroup, addRepeatableEntries } from '../lib/fillEngine'
+import { fillField, fillRadioGroup, fillButtonGroup, fillCheckboxGroup, addRepeatableEntries } from '../lib/fillEngine'
 import { findAddButtonsBySection } from '../lib/dynamicSections'
 import { findNextStepButton } from '../lib/wizardNav'
 import { sendMessage, MESSAGE_TYPES } from '../lib/messaging'
@@ -85,17 +85,23 @@ function applySingleField(field, root) {
   return { fieldId: field.fieldId, applied }
 }
 
+function isEmptyValue(value) {
+  if (Array.isArray(value)) return value.length === 0
+  return value == null || value === ''
+}
+
 function applyFields(fields, root = document) {
   return fields.map((field) => {
-    if (field.userValue == null || field.userValue === '') return { fieldId: field.fieldId, applied: false }
+    if (isEmptyValue(field.userValue)) return { fieldId: field.fieldId, applied: false }
     if (field.tag === 'radio-group') return applyGroupField(field, root, fillRadioGroup)
     if (field.tag === 'button-group') return applyGroupField(field, root, fillButtonGroup)
+    if (field.tag === 'checkbox-group') return applyGroupField(field, root, fillCheckboxGroup)
     return applySingleField(field, root)
   })
 }
 
 function hasBlockingRequiredField(fields) {
-  return fields.some((field) => field.required && (field.userValue == null || field.userValue === ''))
+  return fields.some((field) => field.required && isEmptyValue(field.userValue))
 }
 
 function findNextStep(root = document) {
