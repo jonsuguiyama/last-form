@@ -66,6 +66,28 @@ describe('scanFields', () => {
     expect(fields[0].name).toBe('salary')
   })
 
+  it('returns no fields for the top frame when it looks like the background behind a modal opened in another frame (locked body scroll + an iframe present, no dialog of its own)', () => {
+    setBody(`
+      <input name="search" placeholder="Buscar vagas" />
+      <iframe src="about:blank"></iframe>
+    `)
+    document.body.style.overflow = 'hidden'
+    try {
+      expect(scanFields()).toEqual([])
+    } finally {
+      document.body.style.overflow = ''
+    }
+  })
+
+  it('still scans normally when there is an iframe but the body scroll is not locked', () => {
+    setBody(`
+      <input name="search" placeholder="Buscar vagas" />
+      <iframe src="about:blank"></iframe>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+  })
+
   it('groups a multi-select checkbox question into one checkbox-group field (bare checkboxes)', () => {
     setBody(`
       <div>
