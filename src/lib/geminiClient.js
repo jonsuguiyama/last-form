@@ -69,7 +69,6 @@ const FIELD_MAPPING_SCHEMA = {
           fieldId: { type: 'string' },
           value: { type: 'string', nullable: true },
           confidence: { type: 'number' },
-          missingQuestion: { type: 'string', nullable: true },
         },
         required: ['fieldId', 'confidence'],
       },
@@ -84,10 +83,10 @@ async function mapFields({ apiKey, profile, fields, jobDescription, extraContext
     responseSchema: FIELD_MAPPING_SCHEMA,
     systemInstruction:
       'Você recebe o perfil profissional de um candidato e uma lista de campos de um formulário de ' +
-      'candidatura a vaga. Para cada campo, retorne o valor mais adequado do perfil, ou null com uma ' +
-      'missingQuestion (a pergunta em si, reescrita de forma clara) se o perfil não tiver esse dado. ' +
-      'confidence vai de 0 a 1. Se houver descrição da vaga, priorize o que for mais relevante pra ela ' +
-      'ao escolher entre informações equivalentes do perfil. Se houver extraContext, siga-o estritamente ' +
+      'candidatura a vaga. Para cada campo, retorne o valor mais adequado do perfil, ou null se o ' +
+      'perfil não tiver esse dado. confidence vai de 0 a 1. Se houver descrição da vaga, priorize o ' +
+      'que for mais relevante pra ela ao escolher entre informações equivalentes do perfil. Se houver ' +
+      'extraContext, siga-o estritamente ' +
       '(ex: restringir a resposta a uma entrada específica do perfil). Se o idioma do formulário ' +
       '(pelos labels dos campos) for diferente do idioma em que o perfil está escrito, traduza texto ' +
       'livre (descrições, resumos, respostas abertas) para o idioma do formulário - isso é tradução, ' +
