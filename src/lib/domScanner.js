@@ -4,7 +4,7 @@ import { ADD_BUTTON_PATTERN } from './dynamicSections'
 const FIELD_SELECTOR = 'input, textarea, select'
 const COUNTER_PATTERN = /(\d{1,6})\s{0,2}\/\s{0,2}(\d{1,6})/
 
-const EXCLUDED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image'])
+const EXCLUDED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image', 'password'])
 const KNOWN_PURPOSE_PATTERNS = [NEXT_STEP_PATTERN, BACK_STEP_PATTERN, SUBMIT_PATTERN, ADD_BUTTON_PATTERN]
 const MIN_BUTTON_GROUP_SIZE = 2
 const MAX_BUTTON_GROUP_SIZE = 6
@@ -137,7 +137,6 @@ function buildFieldDescriptor(el, root) {
     required: isRequired(el),
     charLimit: findCharLimit(el),
     section: findSection(el),
-    currentValue: el.value || null,
     options: el.tagName.toLowerCase() === 'select' ? Array.from(el.options).map((o) => o.textContent.trim()) : null,
   }
 }
@@ -161,7 +160,6 @@ function buildRadioGroupDescriptor(radios, root) {
     required: radios.some(isRequired),
     charLimit: null,
     section: findSection(first),
-    currentValue: null,
     options: radios.map((el) => findLabel(el, root)).filter(Boolean),
   }
 }
@@ -222,7 +220,6 @@ function buildButtonGroupDescriptor(parent, buttons) {
     required: false,
     charLimit: null,
     section: findSection(parent),
-    currentValue: null,
     options: buttons.map(buttonText).filter(Boolean),
   }
 }

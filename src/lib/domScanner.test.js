@@ -78,6 +78,16 @@ describe('scanFields', () => {
     expect(fields[0].name).toBe('visible-field')
   })
 
+  it('skips password fields so their live value never leaves the page', () => {
+    setBody(`
+      <input type="password" name="site-password" value="hunter2" />
+      <input name="visible-field" />
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].name).toBe('visible-field')
+  })
+
   it('still detects a radio group whose native inputs are display:none but wrapped in a visible custom-styled label', () => {
     setBody(`
       <fieldset>
