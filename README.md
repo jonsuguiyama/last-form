@@ -1,5 +1,7 @@
 # LAST Form
 
+<img src="public/icons/icon128.png" alt="LAST Form" width="64" />
+
 [![License](https://img.shields.io/github/license/jonsuguiyama/last-form)](https://github.com/jonsuguiyama/last-form/blob/main/LICENSE)
 
 O último formulário de candidatura que você vai precisar preencher!
