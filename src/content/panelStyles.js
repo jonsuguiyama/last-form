@@ -82,22 +82,6 @@ const panelStyles = `
     white-space: pre-wrap;
     box-sizing: border-box;
   }
-  .japc-launcher {
-    position: fixed;
-    bottom: 16px;
-    right: 16px;
-    background: #1a1a1a;
-    color: #fff;
-    border: none;
-    border-radius: 999px;
-    padding: 10px 16px;
-    font-family: system-ui, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    z-index: 2147483647;
-  }
 `
 
 export default panelStyles
