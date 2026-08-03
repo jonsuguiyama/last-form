@@ -80,6 +80,8 @@ seções dinâmicas, cliente do Gemini, schema/matching do perfil).
   bundle de produção.
 - A extensão nunca clica no botão final de envio de um formulário: isso é sempre
   uma ação manual sua.
+- Campos `type="password"` são ignorados pelo scanner: nunca entram na análise nem
+  são mandados pro Gemini, mesmo que já tenham algum valor preenchido na página.
 - É basicamente o mesmo modelo de confiança do autocompletar nativo do navegador:
   os dados ficam guardados localmente e só são usados pra preencher campos na
   própria página, sob demanda sua. A diferença é que aqui o preenchimento é
