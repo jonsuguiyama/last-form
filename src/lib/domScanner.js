@@ -224,13 +224,25 @@ function buildButtonGroupDescriptor(parent, buttons) {
   }
 }
 
+const DIALOG_SELECTOR = '[role="dialog"], [aria-modal="true"]'
+
+function resolveScanRoot(root) {
+  if (typeof root.querySelectorAll !== 'function') return root
+
+  const dialogs = Array.from(root.querySelectorAll(DIALOG_SELECTOR)).filter(isVisible)
+  if (dialogs.length === 0) return root
+
+  return dialogs.at(-1)
+}
+
 function scanFields(root = document) {
   resetFieldIds()
-  const elements = Array.from(root.querySelectorAll(FIELD_SELECTOR))
+  const scanRoot = resolveScanRoot(root)
+  const elements = Array.from(scanRoot.querySelectorAll(FIELD_SELECTOR))
     .filter((el) => !EXCLUDED_INPUT_TYPES.has(el.type))
     .filter((el) => !el.disabled)
     .filter((el) => el.dataset.japcFilled !== 'true')
-    .filter((el) => isInteractiveField(el, root))
+    .filter((el) => isInteractiveField(el, scanRoot))
 
   const radioGroups = new Map()
   const singles = []
@@ -244,11 +256,13 @@ function scanFields(root = document) {
     }
   }
 
-  const radioGroupDescriptors = [...radioGroups.values()].map((radios) => buildRadioGroupDescriptor(radios, root))
-  const buttonGroupDescriptors = findButtonChoiceGroups(root).map(({ parent, buttons }) =>
+  const radioGroupDescriptors = [...radioGroups.values()].map((radios) =>
+    buildRadioGroupDescriptor(radios, scanRoot),
+  )
+  const buttonGroupDescriptors = findButtonChoiceGroups(scanRoot).map(({ parent, buttons }) =>
     buildButtonGroupDescriptor(parent, buttons),
   )
-  const singleDescriptors = singles.map((el) => buildFieldDescriptor(el, root))
+  const singleDescriptors = singles.map((el) => buildFieldDescriptor(el, scanRoot))
 
   return [...radioGroupDescriptors, ...buttonGroupDescriptors, ...singleDescriptors]
 }
