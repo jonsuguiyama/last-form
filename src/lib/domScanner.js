@@ -270,18 +270,28 @@ function buildCheckboxGroupDescriptor(container, boxes, root) {
 
 const DIALOG_SELECTOR = '[role="dialog"], [aria-modal="true"]'
 
+function isTopFrameBehindAModal() {
+  if (window.self !== window.top) return false
+  if (document.querySelectorAll('iframe').length === 0) return false
+  return window.getComputedStyle(document.body).overflow === 'hidden'
+}
+
 function resolveScanRoot(root) {
   if (typeof root.querySelectorAll !== 'function') return root
 
   const dialogs = Array.from(root.querySelectorAll(DIALOG_SELECTOR)).filter(isVisible)
-  if (dialogs.length === 0) return root
+  if (dialogs.length > 0) return dialogs.at(-1)
 
-  return dialogs.at(-1)
+  if (root === document && isTopFrameBehindAModal()) return null
+
+  return root
 }
 
 function scanFields(root = document) {
   resetFieldIds()
   const scanRoot = resolveScanRoot(root)
+  if (scanRoot == null) return []
+
   const elements = Array.from(scanRoot.querySelectorAll(FIELD_SELECTOR))
     .filter((el) => !EXCLUDED_INPUT_TYPES.has(el.type))
     .filter((el) => !el.disabled)

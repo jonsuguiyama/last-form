@@ -33,6 +33,7 @@ export default defineManifest({
       matches: ['<all_urls>'],
       js: ['src/content/index.jsx'],
       run_at: 'document_idle',
+      all_frames: true,
     },
   ],
 })
