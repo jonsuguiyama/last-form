@@ -38,6 +38,18 @@ describe('scanFields', () => {
     expect(field.label).toBe('seu@email.com')
   })
 
+  it('prefers a nearby question heading over a generic instructional placeholder', () => {
+    setBody(`
+      <div>
+        <p>Qual seu salário atual ou último salário?</p>
+        <textarea name="salary" placeholder="Digite sua resposta aqui" maxlength="1000"></textarea>
+        <span>Máx. 1000 caracteres</span>
+      </div>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBe('Qual seu salário atual ou último salário?')
+  })
+
   it('reads maxlength attribute as char limit', () => {
     setBody(`<textarea name="bio" maxlength="400"></textarea>`)
     const [field] = scanFields()
