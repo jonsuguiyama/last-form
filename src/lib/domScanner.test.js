@@ -50,6 +50,22 @@ describe('scanFields', () => {
     expect(field.label).toBe('Qual seu salário atual ou último salário?')
   })
 
+  it('scopes the scan to an open dialog, ignoring fields on the page behind it', () => {
+    setBody(`
+      <div id="page-behind">
+        <input name="search" placeholder="Buscar vagas" />
+        <input type="checkbox" name="remote" /> Remote
+      </div>
+      <div role="dialog" aria-modal="true">
+        <label for="salary">Pretensão salarial</label>
+        <input id="salary" name="salary" />
+      </div>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].name).toBe('salary')
+  })
+
   it('reads maxlength attribute as char limit', () => {
     setBody(`<textarea name="bio" maxlength="400"></textarea>`)
     const [field] = scanFields()
