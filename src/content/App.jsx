@@ -52,6 +52,16 @@ function App() {
     setError(null)
     try {
       const { fields: analyzed, addButtons: buttons } = await analyzeCurrentStep()
+
+      if (analyzed.length === 0) {
+        // Nenhum campo aqui: pode ser um iframe irrelevante (anuncio, widget, embed...) agora que
+        // a extensao roda em todos os frames, ou o frame principal por tras de um modal aberto em
+        // outro frame. Fica quieto em vez de abrir um painel vazio; quem tiver campo de verdade
+        // mostra o proprio painel normalmente.
+        setPhase('idle')
+        return
+      }
+
       setFields(analyzed.map(withUserValue))
       setAddButtons(buttons)
       setPhase('reviewing')
