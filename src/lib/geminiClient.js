@@ -98,7 +98,12 @@ async function mapFields({ apiKey, profile, fields, jobDescription, extraContext
       '"true" ou "false", nunca null: "true" se o label desse checkbox especificamente corresponde ao que ' +
       'está no perfil (ex: o perfil diz "Inglês - Avançado", então marque true só o checkbox "Inglês ' +
       'Avançado", e false os outros níveis de inglês), "false" caso contrário. Marcar false não é inventar ' +
-      'dado, é a resposta correta para uma opção que não se aplica.',
+      'dado, é a resposta correta para uma opção que não se aplica. Para campos com type "checkbox-group" ' +
+      '(uma pergunta única de múltipla escolha, com uma lista de opções em vez de um checkbox isolado, ' +
+      'ex: "Quais linguagens de programação você possui conhecimento?" com opções ["Node", "React", ' +
+      '"PHP"...]), o value deve ser uma única string com as opções que se aplicam ao perfil, separadas ' +
+      'por vírgula, usando exatamente o texto de cada opção como veio em "options" (ex: "Node, React"), ' +
+      'ou uma string vazia se nenhuma opção do perfil bater com nenhuma das opções oferecidas.',
     contents: [
       {
         role: 'user',
