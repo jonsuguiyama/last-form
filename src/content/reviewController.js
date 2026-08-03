@@ -20,11 +20,7 @@ async function analyzeFields(fields, { extraContext } = {}) {
 
   return Promise.all(
     fields.map(async (field) => {
-      const mapping = byId.get(field.fieldId) ?? {
-        value: null,
-        confidence: 0,
-        missingQuestion: 'Não foi possível mapear este campo automaticamente.',
-      }
+      const mapping = byId.get(field.fieldId) ?? { value: null, confidence: 0 }
 
       let { value } = mapping
       if (value && field.charLimit && value.length > field.charLimit.max) {
