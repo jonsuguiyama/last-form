@@ -2,6 +2,9 @@
 
 <img src="public/icons/icon128.png" alt="LAST Form" width="64" />
 
+[![CI](https://github.com/jonsuguiyama/last-form/actions/workflows/ci.yml/badge.svg)](https://github.com/jonsuguiyama/last-form/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jonsuguiyama/last-form/graph/badge.svg)](https://codecov.io/gh/jonsuguiyama/last-form)
+[![Version](https://img.shields.io/github/package-json/v/jonsuguiyama/last-form)](https://github.com/jonsuguiyama/last-form/blob/main/package.json)
 [![License](https://img.shields.io/github/license/jonsuguiyama/last-form)](https://github.com/jonsuguiyama/last-form/blob/main/LICENSE)
 
 O último formulário de candidatura que você vai precisar preencher!
