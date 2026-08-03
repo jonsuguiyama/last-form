@@ -113,11 +113,7 @@ function App() {
   }, [start])
 
   if (phase === 'idle') {
-    return (
-      <button type="button" className="japc-launcher" onClick={start}>
-        Analisar formulário
-      </button>
-    )
+    return null
   }
 
   if (phase === 'error') {
