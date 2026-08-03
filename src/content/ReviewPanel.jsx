@@ -113,7 +113,6 @@ function TextControl({ field, status, onChange }) {
     <input
       className={`japc-input ${status === 'missing-required' ? 'missing-required' : ''}`}
       value={field.userValue ?? ''}
-      placeholder={field.proposal?.missingQuestion ?? ''}
       onChange={(e) => onChange(field.fieldId, e.target.value)}
     />
   )
