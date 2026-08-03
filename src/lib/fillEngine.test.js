@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { setNativeValue, fillField, addRepeatableEntries, fillRadioGroup, fillButtonGroup } from './fillEngine'
+import { setNativeValue, fillField, addRepeatableEntries, fillRadioGroup, fillButtonGroup, fillCheckboxGroup } from './fillEngine'
 
 describe('setNativeValue', () => {
   it('sets the value and dispatches input + change events', () => {
@@ -135,6 +135,42 @@ describe('fillButtonGroup', () => {
     const buttons = yesNoButtons()
     expect(fillButtonGroup(buttons, null)).toBe(false)
     expect(fillButtonGroup([], 'Sim')).toBe(false)
+  })
+})
+
+describe('fillCheckboxGroup', () => {
+  function languageCheckboxes() {
+    document.body.innerHTML = `
+      <label><input type="checkbox" /> Node</label>
+      <label><input type="checkbox" /> React</label>
+      <label><input type="checkbox" /> PHP</label>
+    `
+    return Array.from(document.querySelectorAll('input[type="checkbox"]'))
+  }
+
+  it('checks only the checkboxes whose label is in the value array', () => {
+    const boxes = languageCheckboxes()
+    expect(fillCheckboxGroup(boxes, ['Node', 'PHP'])).toBe(true)
+    expect(boxes[0].checked).toBe(true)
+    expect(boxes[1].checked).toBe(false)
+    expect(boxes[2].checked).toBe(true)
+  })
+
+  it('unchecks a previously checked box that is no longer in the value array', () => {
+    const boxes = languageCheckboxes()
+    boxes[1].click()
+    expect(boxes[1].checked).toBe(true)
+
+    expect(fillCheckboxGroup(boxes, ['Node'])).toBe(true)
+    expect(boxes[0].checked).toBe(true)
+    expect(boxes[1].checked).toBe(false)
+  })
+
+  it('returns false when value is not an array or the group is empty', () => {
+    const boxes = languageCheckboxes()
+    expect(fillCheckboxGroup(boxes, 'Node')).toBe(false)
+    expect(fillCheckboxGroup(boxes, null)).toBe(false)
+    expect(fillCheckboxGroup([], ['Node'])).toBe(false)
   })
 })
 

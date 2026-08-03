@@ -10,8 +10,13 @@ import {
 import { clickAndWait } from '../lib/domWait'
 import { sendMessage, MESSAGE_TYPES } from '../lib/messaging'
 
+function hasUsableValue(value) {
+  if (Array.isArray(value)) return value.length > 0
+  return value != null && value !== ''
+}
+
 async function persistSavedAnswers(fields) {
-  const toSave = fields.filter((f) => f.saveAsAnswer && f.userValue)
+  const toSave = fields.filter((f) => f.saveAsAnswer && hasUsableValue(f.userValue))
   if (toSave.length === 0) return
 
   const profile = await sendMessage(MESSAGE_TYPES.GET_PROFILE)
@@ -25,6 +30,13 @@ async function persistSavedAnswers(fields) {
 function withUserValue(field) {
   if (field.type === 'checkbox') {
     return { ...field, userValue: field.proposal?.value === true || field.proposal?.value === 'true' }
+  }
+  if (field.type === 'checkbox-group') {
+    const raw = field.proposal?.value
+    const selected = Array.isArray(raw)
+      ? raw
+      : (raw?.split(',').map((s) => s.trim()).filter(Boolean) ?? [])
+    return { ...field, userValue: selected }
   }
   return { ...field, userValue: field.proposal?.value ?? '' }
 }
