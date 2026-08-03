@@ -38,6 +38,36 @@ describe('scanFields', () => {
     expect(field.label).toBe('seu@email.com')
   })
 
+  it('dedupes a label whose text is exactly repeated back-to-back (e.g. a hidden a11y duplicate)', () => {
+    setBody(`
+      <label for="q1">Have you built websites for B2B companies?Have you built websites for B2B companies?</label>
+      <select id="q1"><option>Yes</option><option>No</option></select>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBe('Have you built websites for B2B companies?')
+  })
+
+  it('dedupes a repeated label separated by a single space', () => {
+    setBody(`
+      <label for="q2">Do you have experience with Figma? Do you have experience with Figma?</label>
+      <select id="q2"><option>Yes</option><option>No</option></select>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBe('Do you have experience with Figma?')
+  })
+
+  it('does not dedupe a short value that happens to be two equal halves (e.g. a numeric option)', () => {
+    setBody(`<label>55 <input name="age" /></label>`)
+    const [field] = scanFields()
+    expect(field.label).toContain('55')
+  })
+
+  it('does not touch a label with a legitimately repeated word inside a normal sentence', () => {
+    setBody(`<label>Você concorda que concorda com os termos? <input name="terms" /></label>`)
+    const [field] = scanFields()
+    expect(field.label).toBe('Você concorda que concorda com os termos?')
+  })
+
   it('prefers a nearby question heading over a generic instructional placeholder', () => {
     setBody(`
       <div>

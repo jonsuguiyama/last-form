@@ -10,6 +10,7 @@ const MIN_BUTTON_GROUP_SIZE = 2
 const MAX_BUTTON_GROUP_SIZE = 6
 const MIN_CHECKBOX_GROUP_SIZE = 2
 const MAX_CHECKBOX_GROUP_SIZE = 15
+const MIN_DEDUPE_LENGTH = 8
 
 let nextFieldId = 0
 
@@ -25,6 +26,28 @@ function isVisible(el) {
 
 function escapeAttributeValue(value) {
   return value.replace(/["\\]/g, String.raw`\$&`)
+}
+
+function dedupeRepeatedText(text) {
+  if (!text) return text
+  const normalized = text.replace(/\s+/g, ' ').trim()
+  if (normalized.length < MIN_DEDUPE_LENGTH) return text
+
+  const half = normalized.length / 2
+  if (Number.isInteger(half) && normalized.slice(0, half) === normalized.slice(half)) {
+    return normalized.slice(0, half)
+  }
+
+  const oddHalf = (normalized.length - 1) / 2
+  if (Number.isInteger(oddHalf)) {
+    const separator = normalized[oddHalf]
+    const isSeparator = separator === ' ' || separator === '\n' || separator === '\t'
+    if (isSeparator && normalized.slice(0, oddHalf) === normalized.slice(oddHalf + 1)) {
+      return normalized.slice(0, oddHalf)
+    }
+  }
+
+  return text
 }
 
 function hasVisibleLabel(el, root) {
@@ -80,14 +103,14 @@ function labelFromNearbyText(el) {
 }
 
 function findLabel(el, root) {
-  return (
+  const label =
     labelFromFor(el, root) ||
     labelFromWrapping(el) ||
     labelFromAria(el) ||
     labelFromNearbyText(el) ||
     el.getAttribute('placeholder')?.trim() ||
     null
-  )
+  return dedupeRepeatedText(label)
 }
 
 function findCharLimit(el) {
@@ -110,7 +133,7 @@ function findSection(el) {
   const container = el.closest('fieldset, section, [role="group"]')
   if (!container) return null
   const heading = container.querySelector('legend, h1, h2, h3, h4')
-  return heading ? heading.textContent.trim() : null
+  return heading ? dedupeRepeatedText(heading.textContent.trim()) : null
 }
 
 function isRequired(el) {
@@ -178,12 +201,12 @@ function hasKnownPurpose(el) {
 function findButtonGroupQuestion(container) {
   const prev = container.previousElementSibling
   const prevText = prev?.textContent?.trim()
-  if (prevText && prevText.length < 200) return prevText
+  if (prevText && prevText.length < 200) return dedupeRepeatedText(prevText)
 
   const section = container.closest('fieldset, section, [role="group"]')
   const heading = section?.querySelector('legend, h1, h2, h3, h4, label, p')
   const headingText = heading?.textContent?.trim()
-  return headingText && headingText.length < 200 ? headingText : null
+  return headingText && headingText.length < 200 ? dedupeRepeatedText(headingText) : null
 }
 
 function findButtonChoiceGroups(root) {
