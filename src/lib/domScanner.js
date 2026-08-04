@@ -12,6 +12,20 @@ const MIN_CHECKBOX_GROUP_SIZE = 2
 const MAX_CHECKBOX_GROUP_SIZE = 15
 const MIN_DEDUPE_LENGTH = 8
 
+// Form builders often render a question as a heading that is a sibling of the DIV wrapping the
+// field, not of the field itself, so we have to climb a couple of levels to find it. Kept short on
+// purpose: the further up we go, the more likely we are to grab a section heading shared by many
+// fields instead of this field's own question.
+const MAX_QUESTION_BLOCK_LEVELS = 3
+const QUESTION_BLOCK_BOUNDARY = 'form, fieldset, section, [role="group"], [role="dialog"], body'
+// No h1 on purpose: an h1 is the page/form title, never a single field's question.
+const QUESTION_BLOCK_TEXT_SELECTOR = 'label, legend, p, span, h2, h3, h4, h5, h6'
+const MAX_QUESTION_LENGTH = 300
+
+// A name/id is only readable as a question when it looks like a sentence. Technical names
+// ("email", "firstName", "user_phone") never contain a space, which is the cheapest reliable guard.
+const MIN_NAME_AS_LABEL_LENGTH = 12
+
 let nextFieldId = 0
 
 function resetFieldIds() {
@@ -99,16 +113,74 @@ function labelFromNearbyText(el) {
   const heading = el.parentElement?.querySelector('label, span, p, legend')
   const headingText = heading?.textContent.trim()
   if (headingText) return headingText
+  return labelFromQuestionBlock(el)
+}
+
+function precedesField(candidate, el) {
+  if (candidate.contains(el)) return false
+  return Boolean(el.compareDocumentPosition(candidate) & Node.DOCUMENT_POSITION_PRECEDING)
+}
+
+// Heading markup carries decoration the question itself does not: a required-marker asterisk in its
+// own <strong>, and leftovers of CSS-rendered numbering (a bare "." before the text). Required-ness
+// is already reported by isRequired(), so keeping the asterisk here only garbles the label.
+function cleanQuestionText(text) {
+  return text
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\s?\*$/, '')
+    .replace(/^[^\p{L}\p{N}([]+/u, '')
+    .trim()
+}
+
+// A "question block" is a wrapper holding one question and the single field that answers it. The
+// question is often a heading next to the DIV that wraps the field, so it is invisible both to
+// previousElementSibling and to a lookup inside the field's immediate parent.
+function labelFromQuestionBlock(el) {
+  let container = el.parentElement?.parentElement
+
+  for (let level = 0; container && level < MAX_QUESTION_BLOCK_LEVELS; level++) {
+    // Sections are findSection's job: their heading describes a group, not this one field.
+    if (container.matches(QUESTION_BLOCK_BOUNDARY)) return null
+    if (container.querySelectorAll(FIELD_SELECTOR).length > 1) return null
+
+    const candidate = Array.from(container.querySelectorAll(QUESTION_BLOCK_TEXT_SELECTOR)).find((node) =>
+      precedesField(node, el),
+    )
+    const text = candidate ? cleanQuestionText(candidate.textContent) : ''
+    if (text && text.length <= MAX_QUESTION_LENGTH) return text
+
+    container = container.parentElement
+  }
   return null
 }
 
+// Last resort before giving up. Every field needs SOMETHING that tells it apart from its neighbours,
+// and name/id are the closest thing to guaranteed-unique on a form (it needs them to submit at all).
+// Some builders name the field after the question itself, which is exactly the text we want.
+function labelFromFieldName(el) {
+  for (const candidate of [el.name, el.id]) {
+    const value = candidate?.trim()
+    if (!value) continue
+    if (value.length < MIN_NAME_AS_LABEL_LENGTH || value.length > MAX_QUESTION_LENGTH) continue
+    // A technical name ("email", "firstName", "answers[0]") never reads like a sentence.
+    if (!/\s/.test(value) || /[[\]{}]/.test(value)) continue
+    return cleanQuestionText(value)
+  }
+  return null
+}
+
+// Deliberately no placeholder fallback: placeholder is hint text shown inside the empty input, and
+// it is the one source guaranteed to be IDENTICAL across every field of a form ("Digite sua resposta
+// aqui"), so using it as a label both misstates the question and makes fields indistinguishable.
+// No label at all is more honest than the same wrong label on every field.
 function findLabel(el, root) {
   const label =
     labelFromFor(el, root) ||
     labelFromWrapping(el) ||
     labelFromAria(el) ||
     labelFromNearbyText(el) ||
-    el.getAttribute('placeholder')?.trim() ||
+    labelFromFieldName(el) ||
     null
   return dedupeRepeatedText(label)
 }

@@ -32,10 +32,10 @@ describe('scanFields', () => {
     expect(field.label).toContain('Telefone')
   })
 
-  it('falls back to placeholder when no label exists', () => {
+  it('never uses the placeholder as a label, even when nothing else is available', () => {
     setBody(`<input name="email" placeholder="seu@email.com" />`)
     const [field] = scanFields()
-    expect(field.label).toBe('seu@email.com')
+    expect(field.label).toBeNull()
   })
 
   it('dedupes a label whose text is exactly repeated back-to-back (e.g. a hidden a11y duplicate)', () => {
@@ -78,6 +78,166 @@ describe('scanFields', () => {
     `)
     const [field] = scanFields()
     expect(field.label).toBe('Qual seu salário atual ou último salário?')
+  })
+
+  it('finds the question when it sits above the field wrapper, not next to the field itself', () => {
+    setBody(`
+      <div class="question-block">
+        <p>1. Qual é o seu RG?</p>
+        <div class="input-wrapper">
+          <textarea name="q1" placeholder="Digite sua resposta aqui" maxlength="1000"></textarea>
+        </div>
+        <span>Máx. 1000 caracteres</span>
+      </div>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBe('1. Qual é o seu RG?')
+  })
+
+  it('finds a question heading that is a sibling of the field wrapper (markup captured live from a React form builder)', () => {
+    setBody(`
+      <div>
+        <h3>
+          .
+          Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?
+          <strong>&nbsp;*</strong>
+        </h3>
+        <div class="form-group textarea">
+          <div class="form-group__content">
+            <textarea
+              id="input-Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?"
+              name="Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?"
+              aria-required="true"
+              placeholder="Digite sua resposta aqui"
+              rows="5"
+              maxlength="1000"></textarea>
+            <br>
+            <small class="error-message"></small>
+          </div>
+        </div>
+      </div>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBe('Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?')
+    expect(field.required).toBe(true)
+  })
+
+  it('finds the question two wrapper levels above the field', () => {
+    setBody(`
+      <div class="question-block">
+        <h3>2. Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?</h3>
+        <div class="field">
+          <div class="input-wrapper">
+            <textarea name="q2" placeholder="Digite sua resposta aqui"></textarea>
+          </div>
+        </div>
+      </div>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBe('2. Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?')
+  })
+
+  it('reads each question of a form builder that repeats the same generic placeholder on every field', () => {
+    setBody(`
+      <form>
+        <div>
+          <p>1. Qual é o seu RG?</p>
+          <div><textarea name="q1" placeholder="Digite sua resposta aqui"></textarea></div>
+        </div>
+        <div>
+          <p>2. Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?</p>
+          <div><textarea name="q2" placeholder="Digite sua resposta aqui"></textarea></div>
+        </div>
+        <div>
+          <p>3. Qual seu salário atual ou último salário?</p>
+          <div><textarea name="q3" placeholder="Digite sua resposta aqui"></textarea></div>
+        </div>
+      </form>
+    `)
+    expect(scanFields().map((f) => f.label)).toEqual([
+      '1. Qual é o seu RG?',
+      '2. Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?',
+      '3. Qual seu salário atual ou último salário?',
+    ])
+  })
+
+  it('ignores text hints that come after the field, like a character counter', () => {
+    setBody(`
+      <div class="question-block">
+        <div class="input-wrapper">
+          <textarea name="q1" placeholder="Digite sua resposta aqui"></textarea>
+        </div>
+        <span>Máx. 1000 caracteres</span>
+      </div>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBeNull()
+  })
+
+  it('does not climb past the form to grab a page-level instruction as a field label', () => {
+    setBody(`
+      <form>
+        <p>Preencha todos os campos abaixo</p>
+        <div><div><input name="a" placeholder="Digite aqui" /></div></div>
+      </form>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBeNull()
+  })
+
+  it('does not reuse a heading shared by several fields as every field label', () => {
+    setBody(`
+      <div>
+        <p>Dados pessoais</p>
+        <div><input name="first" placeholder="Nome" /></div>
+        <div><input name="last" placeholder="Sobrenome" /></div>
+      </div>
+    `)
+    expect(scanFields().map((f) => f.label)).toEqual([null, null])
+  })
+
+  it('uses a sentence-like name attribute as a last resort, so fields stay distinguishable', () => {
+    setBody(`
+      <form>
+        <textarea name="Qual seu salário atual ou último salário?" placeholder="Digite sua resposta aqui"></textarea>
+      </form>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBe('Qual seu salário atual ou último salário?')
+  })
+
+  it('falls back to a sentence-like id when the field has no name', () => {
+    setBody(`
+      <form>
+        <textarea id="Qual seu salário atual ou último salário?"></textarea>
+      </form>
+    `)
+    const [field] = scanFields()
+    expect(field.label).toBe('Qual seu salário atual ou último salário?')
+  })
+
+  it('does not turn a technical name or id into a label', () => {
+    setBody(`
+      <form>
+        <input name="email" />
+        <input name="firstName" />
+        <input name="user_home_phone_number" />
+        <input id="candidate-current-salary-field" />
+      </form>
+    `)
+    expect(scanFields().map((f) => f.label)).toEqual([null, null, null, null])
+  })
+
+  it('keeps repeated labels that came from real label elements', () => {
+    setBody(`
+      <form>
+        <label for="p1">Telefone</label>
+        <input id="p1" name="phone1" placeholder="Digite sua resposta aqui" />
+        <label for="p2">Telefone</label>
+        <input id="p2" name="phone2" placeholder="Digite sua resposta aqui" />
+      </form>
+    `)
+    expect(scanFields().map((f) => f.label)).toEqual(['Telefone', 'Telefone'])
   })
 
   it('scopes the scan to an open dialog, ignoring fields on the page behind it', () => {
