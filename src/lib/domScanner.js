@@ -416,18 +416,35 @@ function scanFields(root = document) {
   const groupedCheckboxes = new Set(checkboxGroups.flatMap(({ boxes }) => boxes))
   const ungroupedCheckboxes = checkboxCandidates.filter((el) => !groupedCheckboxes.has(el))
 
-  const radioGroupDescriptors = [...radioGroups.values()].map((radios) =>
-    buildRadioGroupDescriptor(radios, scanRoot),
-  )
-  const buttonGroupDescriptors = findButtonChoiceGroups(scanRoot).map(({ parent, buttons }) =>
-    buildButtonGroupDescriptor(parent, buttons),
-  )
-  const checkboxGroupDescriptors = checkboxGroups.map(({ container, boxes }) =>
-    buildCheckboxGroupDescriptor(container, boxes, scanRoot),
-  )
-  const singleDescriptors = [...singles, ...ungroupedCheckboxes].map((el) => buildFieldDescriptor(el, scanRoot))
+  const radioGroupEntries = [...radioGroups.values()].map((radios) => ({
+    anchor: radios[0],
+    descriptor: buildRadioGroupDescriptor(radios, scanRoot),
+  }))
+  const buttonGroupEntries = findButtonChoiceGroups(scanRoot).map(({ parent, buttons }) => ({
+    anchor: buttons[0],
+    descriptor: buildButtonGroupDescriptor(parent, buttons),
+  }))
+  const checkboxGroupEntries = checkboxGroups.map(({ container, boxes }) => ({
+    anchor: boxes[0],
+    descriptor: buildCheckboxGroupDescriptor(container, boxes, scanRoot),
+  }))
+  const singleEntries = [...singles, ...ungroupedCheckboxes].map((el) => ({
+    anchor: el,
+    descriptor: buildFieldDescriptor(el, scanRoot),
+  }))
 
-  return [...radioGroupDescriptors, ...buttonGroupDescriptors, ...checkboxGroupDescriptors, ...singleDescriptors]
+  // Previously concatenated by type, which put every checkbox-group ahead of plain fields
+  // regardless of page position. Sort by real DOM position instead, so the list always matches
+  // the order fields appear on the page.
+  const entries = [...radioGroupEntries, ...buttonGroupEntries, ...checkboxGroupEntries, ...singleEntries]
+  entries.sort((a, b) => {
+    const position = a.anchor.compareDocumentPosition(b.anchor)
+    if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1
+    if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1
+    return 0
+  })
+
+  return entries.map((entry) => entry.descriptor)
 }
 
 function getFieldElement(fieldId, root = document) {
