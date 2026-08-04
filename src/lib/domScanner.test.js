@@ -278,6 +278,30 @@ describe('scanFields', () => {
     expect(fields).toHaveLength(1)
   })
 
+  it('returns fields in document order, not grouped by field type (a checkbox-group later on the page must not jump ahead of earlier plain fields)', () => {
+    setBody(`
+      <form>
+        <div>
+          <p>1. Qual é o seu RG?</p>
+          <div><textarea name="q1" placeholder="Digite sua resposta aqui"></textarea></div>
+        </div>
+        <div>
+          <p>2. Qual é o diferencial de trabalhar em um lugar como a Fundação Itaú?</p>
+          <div><textarea name="q2" placeholder="Digite sua resposta aqui"></textarea></div>
+        </div>
+        <div>
+          <p>7. Quais linguagens de programação você possui conhecimento?</p>
+          <div>
+            <input type="checkbox" id="lang-node" /><label for="lang-node">Node</label>
+            <input type="checkbox" id="lang-react" /><label for="lang-react">React</label>
+          </div>
+        </div>
+      </form>
+    `)
+    const fields = scanFields()
+    expect(fields.map((f) => f.tag)).toEqual(['textarea', 'textarea', 'checkbox-group'])
+  })
+
   it('groups a multi-select checkbox question into one checkbox-group field (bare checkboxes)', () => {
     setBody(`
       <div>
