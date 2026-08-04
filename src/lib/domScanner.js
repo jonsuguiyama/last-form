@@ -272,12 +272,12 @@ function hasKnownPurpose(el) {
 
 function findButtonGroupQuestion(container) {
   const prev = container.previousElementSibling
-  const prevText = prev?.textContent?.trim()
+  const prevText = prev ? cleanQuestionText(prev.textContent) : ''
   if (prevText && prevText.length < 200) return dedupeRepeatedText(prevText)
 
   const section = container.closest('fieldset, section, [role="group"]')
   const heading = section?.querySelector('legend, h1, h2, h3, h4, label, p')
-  const headingText = heading?.textContent?.trim()
+  const headingText = heading ? cleanQuestionText(heading.textContent) : ''
   return headingText && headingText.length < 200 ? dedupeRepeatedText(headingText) : null
 }
 
@@ -325,9 +325,13 @@ function checkboxGroupContainer(el) {
   const semantic = el.closest('fieldset, section, [role="group"], ul, ol')
   if (semantic) return semantic
 
-  const parent = el.parentElement
-  if (parent?.tagName.toLowerCase() === 'label') return parent.parentElement ?? parent
-  return parent
+  // closest() instead of parentElement: UI kits wrap the native input in one or more spans (icon,
+  // ripple, state layer) before the <label>, so the label is rarely the immediate parent. Missing it
+  // gave every checkbox its own container, so no group ever reached MIN_CHECKBOX_GROUP_SIZE and the
+  // whole question came out as N unrelated single-checkbox fields.
+  const wrappingLabel = el.closest('label')
+  if (wrappingLabel) return wrappingLabel.parentElement ?? wrappingLabel
+  return el.parentElement
 }
 
 function findCheckboxGroups(checkboxes) {
