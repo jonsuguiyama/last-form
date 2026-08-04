@@ -316,12 +316,84 @@ describe('scanFields', () => {
     expect(fields[0].options).toEqual(['Node', 'React', 'Ruby on Rails', 'PHP', 'Python', 'Outras'])
   })
 
+  it('groups a multi-select question whose checkboxes sit inside an extra wrapper span before the <label> (UI-kit shape captured live)', () => {
+    setBody(`
+      <div>
+        <h3>7. Quais linguagens de programação você possui conhecimento?<strong>&nbsp;*</strong></h3>
+        <div class="options">
+          <label>
+            <span class="checkbox-root">
+              <input name="checkbox-2579216-0" type="checkbox" />
+              <svg aria-hidden="true"></svg>
+            </span>
+            <span class="label-text">Node</span>
+          </label>
+          <label>
+            <span class="checkbox-root">
+              <input name="checkbox-2579216-1" type="checkbox" />
+              <svg aria-hidden="true"></svg>
+            </span>
+            <span class="label-text">React</span>
+          </label>
+          <label>
+            <span class="checkbox-root">
+              <input name="checkbox-2579216-2" type="checkbox" />
+              <svg aria-hidden="true"></svg>
+            </span>
+            <span class="label-text">Ruby on Rails</span>
+          </label>
+          <label>
+            <span class="checkbox-root">
+              <input name="checkbox-2579216-3" type="checkbox" />
+              <svg aria-hidden="true"></svg>
+            </span>
+            <span class="label-text">PHP</span>
+          </label>
+          <label>
+            <span class="checkbox-root">
+              <input name="checkbox-2579216-4" type="checkbox" />
+              <svg aria-hidden="true"></svg>
+            </span>
+            <span class="label-text">Python</span>
+          </label>
+          <label>
+            <span class="checkbox-root">
+              <input name="checkbox-2579216-5" type="checkbox" />
+              <svg aria-hidden="true"></svg>
+            </span>
+            <span class="label-text">Outras</span>
+          </label>
+        </div>
+      </div>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].tag).toBe('checkbox-group')
+    expect(fields[0].label).toBe('7. Quais linguagens de programação você possui conhecimento?')
+    expect(fields[0].options).toEqual(['Node', 'React', 'Ruby on Rails', 'PHP', 'Python', 'Outras'])
+  })
+
   it('does not group a single standalone checkbox (e.g. accept terms)', () => {
     setBody(`<label><input type="checkbox" /> Eu concordo com os termos</label>`)
     const fields = scanFields()
     expect(fields).toHaveLength(1)
     expect(fields[0].tag).not.toBe('checkbox-group')
     expect(fields[0].type).toBe('checkbox')
+  })
+
+  it('does not group a single standalone checkbox that also has the extra wrapper span', () => {
+    setBody(`
+      <div>
+        <label>
+          <span class="checkbox-root"><input type="checkbox" /><svg aria-hidden="true"></svg></span>
+          <span class="label-text">Eu concordo com os termos</span>
+        </label>
+      </div>
+    `)
+    const fields = scanFields()
+    expect(fields).toHaveLength(1)
+    expect(fields[0].tag).not.toBe('checkbox-group')
+    expect(fields[0].label).toBe('Eu concordo com os termos')
   })
 
   it('reads maxlength attribute as char limit', () => {
