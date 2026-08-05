@@ -106,4 +106,4 @@ código, rode `npm test` pra garantir que a suíte continua passando.
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT - see [LICENSE](./LICENSE).
